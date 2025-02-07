@@ -8,6 +8,7 @@ import com.anthropic.core.http.HttpMethod
 import com.anthropic.core.http.HttpRequest
 import com.anthropic.core.http.HttpRequestBody
 import com.anthropic.core.http.HttpResponse
+import com.anthropic.credentials.Credentials
 import com.anthropic.errors.AnthropicIoException
 import java.io.IOException
 import java.io.InputStream
@@ -27,9 +28,16 @@ import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.BufferedSink
 
-class OkHttpClient
-private constructor(private val okHttpClient: okhttp3.OkHttpClient, private val baseUrl: HttpUrl) :
-    HttpClient {
+class OkHttpClient private constructor(
+    private val okHttpClient: okhttp3.OkHttpClient,
+    private val baseUrl: HttpUrl,
+
+    /**
+     * [Credentials] (optional) that may be required to authenticate and
+     * authorize requests to an Anthropic service.
+     */
+    private val credentials: Credentials?)
+    : HttpClient {
 
     private fun getClient(requestOptions: RequestOptions): okhttp3.OkHttpClient {
         val clientBuilder = okHttpClient.newBuilder()
@@ -65,14 +73,18 @@ private constructor(private val okHttpClient: okhttp3.OkHttpClient, private val 
         request: HttpRequest,
         requestOptions: RequestOptions,
     ): HttpResponse {
-        val call = getClient(requestOptions).newCall(request.toRequest())
+        val preparedRequest = credentials?.prepare(request) ?: request
+        val signRequest = preparedRequest.resolveUrl()
+        val signedRequest = credentials?.sign(signRequest) ?: signRequest
+        val okHttpRequest = signedRequest.toRequest()
+        val call = getClient(requestOptions).newCall(okHttpRequest)
 
         return try {
             call.execute().toResponse()
         } catch (e: IOException) {
             throw AnthropicIoException("Request failed", e)
         } finally {
-            request.body?.close()
+            signedRequest.body?.close()
         }
     }
 
@@ -80,11 +92,14 @@ private constructor(private val okHttpClient: okhttp3.OkHttpClient, private val 
         request: HttpRequest,
         requestOptions: RequestOptions,
     ): CompletableFuture<HttpResponse> {
+        val preparedRequest = credentials?.prepare(request) ?: request
+        val signRequest = preparedRequest.resolveUrl()
+        val signedRequest = credentials?.sign(signRequest) ?: signRequest
         val future = CompletableFuture<HttpResponse>()
 
-        request.body?.run { future.whenComplete { _, _ -> close() } }
+        signedRequest.body?.run { future.whenComplete { _, _ -> close() } }
 
-        val call = getClient(requestOptions).newCall(request.toRequest())
+        val call = getClient(requestOptions).newCall(signedRequest.toRequest())
         call.enqueue(
             object : Callback {
                 override fun onResponse(call: Call, response: Response) {
@@ -112,8 +127,7 @@ private constructor(private val okHttpClient: okhttp3.OkHttpClient, private val 
         if (body == null && (method == HttpMethod.PUT || method == HttpMethod.POST)) {
             body = "".toRequestBody()
         }
-
-        val builder = Request.Builder().url(toUrl()).method(method.name, body)
+        val builder = Request.Builder().url(url ?: "").method(method.name, body)
         headers.names().forEach { name ->
             headers.values(name).forEach { builder.header(name, it) }
         }
@@ -121,12 +135,26 @@ private constructor(private val okHttpClient: okhttp3.OkHttpClient, private val 
         return builder.build()
     }
 
+    /**
+     * Creates a new [HttpRequest] with the [HttpRequest.url] property resolved
+     * from the base URL, credentials, path segments and query parameters. If
+     * the URL is already set, it is not changed.
+     *
+     * @return The new request instance with the URL property set.
+     */
+    private fun HttpRequest.resolveUrl(): HttpRequest {
+        return toBuilder().url(toUrl()).build()
+    }
+
     private fun HttpRequest.toUrl(): String {
         url?.let {
             return it
         }
 
-        val builder = baseUrl.newBuilder()
+        val builder: HttpUrl.Builder =
+            credentials?.baseUrl()?.toHttpUrl()?.newBuilder()
+                ?: baseUrl.newBuilder()
+
         pathSegments.forEach(builder::addPathSegment)
         queryParams.keys().forEach { key ->
             queryParams.values(key).forEach { builder.addQueryParameter(key, it) }
@@ -181,11 +209,32 @@ private constructor(private val okHttpClient: okhttp3.OkHttpClient, private val 
         private var timeout: Duration = Duration.ofSeconds(600)
         private var proxy: Proxy? = null
 
+        /**
+         * [Credentials] that may be required to authenticate and authorize
+         * requests to an Anthropic service.
+         */
+        private var credentials: Credentials? = null
+
         fun baseUrl(baseUrl: String) = apply { this.baseUrl = baseUrl.toHttpUrl() }
 
         fun timeout(timeout: Duration) = apply { this.timeout = timeout }
 
         fun proxy(proxy: Proxy?) = apply { this.proxy = proxy }
+
+        /**
+         * Sets the credentials to be used to authenticate and authorize the
+         * request to an Anthropic service. Implementations of the [Credentials]
+         * interface can define the required credentials for a specific service,
+         * e.g., Amazon Bedrock.
+         *
+         * If connecting to the default Anthropic service, these alternative
+         * credentials are not required.
+         *
+         * @param credentials The credentials to be used.
+         */
+        fun credentials(credentials: Credentials?) = apply {
+            this.credentials = credentials
+        }
 
         fun build(): OkHttpClient =
             OkHttpClient(
@@ -197,6 +246,7 @@ private constructor(private val okHttpClient: okhttp3.OkHttpClient, private val 
                     .proxy(proxy)
                     .build(),
                 checkRequired("baseUrl", baseUrl),
+                credentials,
             )
     }
 }
