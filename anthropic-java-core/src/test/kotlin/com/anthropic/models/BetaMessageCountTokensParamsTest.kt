@@ -9,14 +9,9 @@ import org.junit.jupiter.api.Test
 class BetaMessageCountTokensParamsTest {
 
     @Test
-    fun createBetaMessageCountTokensParams() {
+    fun create() {
         BetaMessageCountTokensParams.builder()
-            .addMessage(
-                BetaMessageParam.builder()
-                    .content("string")
-                    .role(BetaMessageParam.Role.USER)
-                    .build()
-            )
+            .addUserMessage("string")
             .model(Model.CLAUDE_3_5_HAIKU_LATEST)
             .systemOfBetaTextBlockParams(
                 listOf(
@@ -87,15 +82,10 @@ class BetaMessageCountTokensParamsTest {
     }
 
     @Test
-    fun getBody() {
+    fun body() {
         val params =
             BetaMessageCountTokensParams.builder()
-                .addMessage(
-                    BetaMessageParam.builder()
-                        .content("string")
-                        .role(BetaMessageParam.Role.USER)
-                        .build()
-                )
+                .addUserMessage("string")
                 .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                 .systemOfBetaTextBlockParams(
                     listOf(
@@ -163,7 +153,7 @@ class BetaMessageCountTokensParamsTest {
                 )
                 .addBeta(AnthropicBeta.MESSAGE_BATCHES_2024_09_24)
                 .build()
-        val body = params.getBody()
+        val body = params._body()
         assertThat(body).isNotNull
         assertThat(body.messages())
             .isEqualTo(
@@ -253,18 +243,13 @@ class BetaMessageCountTokensParamsTest {
     }
 
     @Test
-    fun getBodyWithoutOptionalFields() {
+    fun bodyWithoutOptionalFields() {
         val params =
             BetaMessageCountTokensParams.builder()
-                .addMessage(
-                    BetaMessageParam.builder()
-                        .content("string")
-                        .role(BetaMessageParam.Role.USER)
-                        .build()
-                )
+                .addUserMessage("string")
                 .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                 .build()
-        val body = params.getBody()
+        val body = params._body()
         assertThat(body).isNotNull
         assertThat(body.messages())
             .isEqualTo(

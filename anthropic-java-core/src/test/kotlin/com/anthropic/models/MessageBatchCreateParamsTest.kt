@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test
 class MessageBatchCreateParamsTest {
 
     @Test
-    fun createMessageBatchCreateParams() {
+    fun create() {
         MessageBatchCreateParams.builder()
             .addRequest(
                 MessageBatchCreateParams.Request.builder()
@@ -17,12 +17,7 @@ class MessageBatchCreateParamsTest {
                     .params(
                         MessageBatchCreateParams.Request.Params.builder()
                             .maxTokens(1024L)
-                            .addMessage(
-                                MessageParam.builder()
-                                    .content("Hello, world")
-                                    .role(MessageParam.Role.USER)
-                                    .build()
-                            )
+                            .addUserMessage("Hello, world")
                             .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                             .metadata(
                                 Metadata.builder()
@@ -105,7 +100,7 @@ class MessageBatchCreateParamsTest {
     }
 
     @Test
-    fun getBody() {
+    fun body() {
         val params =
             MessageBatchCreateParams.builder()
                 .addRequest(
@@ -114,12 +109,7 @@ class MessageBatchCreateParamsTest {
                         .params(
                             MessageBatchCreateParams.Request.Params.builder()
                                 .maxTokens(1024L)
-                                .addMessage(
-                                    MessageParam.builder()
-                                        .content("Hello, world")
-                                        .role(MessageParam.Role.USER)
-                                        .build()
-                                )
+                                .addUserMessage("Hello, world")
                                 .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                                 .metadata(
                                     Metadata.builder()
@@ -201,7 +191,7 @@ class MessageBatchCreateParamsTest {
                         .build()
                 )
                 .build()
-        val body = params.getBody()
+        val body = params._body()
         assertThat(body).isNotNull
         assertThat(body.requests())
             .isEqualTo(
@@ -211,12 +201,7 @@ class MessageBatchCreateParamsTest {
                         .params(
                             MessageBatchCreateParams.Request.Params.builder()
                                 .maxTokens(1024L)
-                                .addMessage(
-                                    MessageParam.builder()
-                                        .content("Hello, world")
-                                        .role(MessageParam.Role.USER)
-                                        .build()
-                                )
+                                .addUserMessage("Hello, world")
                                 .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                                 .metadata(
                                     Metadata.builder()
@@ -301,7 +286,7 @@ class MessageBatchCreateParamsTest {
     }
 
     @Test
-    fun getBodyWithoutOptionalFields() {
+    fun bodyWithoutOptionalFields() {
         val params =
             MessageBatchCreateParams.builder()
                 .addRequest(
@@ -310,19 +295,14 @@ class MessageBatchCreateParamsTest {
                         .params(
                             MessageBatchCreateParams.Request.Params.builder()
                                 .maxTokens(1024L)
-                                .addMessage(
-                                    MessageParam.builder()
-                                        .content("Hello, world")
-                                        .role(MessageParam.Role.USER)
-                                        .build()
-                                )
+                                .addUserMessage("Hello, world")
                                 .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                                 .build()
                         )
                         .build()
                 )
                 .build()
-        val body = params.getBody()
+        val body = params._body()
         assertThat(body).isNotNull
         assertThat(body.requests())
             .isEqualTo(
@@ -332,12 +312,7 @@ class MessageBatchCreateParamsTest {
                         .params(
                             MessageBatchCreateParams.Request.Params.builder()
                                 .maxTokens(1024L)
-                                .addMessage(
-                                    MessageParam.builder()
-                                        .content("Hello, world")
-                                        .role(MessageParam.Role.USER)
-                                        .build()
-                                )
+                                .addUserMessage("Hello, world")
                                 .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                                 .build()
                         )

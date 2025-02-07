@@ -3,7 +3,6 @@ package com.anthropic.example;
 import com.anthropic.client.AnthropicClientAsync;
 import com.anthropic.client.okhttp.AnthropicOkHttpClientAsync;
 import com.anthropic.models.MessageCreateParams;
-import com.anthropic.models.MessageParam;
 import com.anthropic.models.Model;
 import java.util.concurrent.CompletableFuture;
 
@@ -19,10 +18,7 @@ public final class MessagesConversationAsyncExample {
         MessageCreateParams.Builder createParamsBuilder = MessageCreateParams.builder()
                 .model(Model.CLAUDE_3_5_SONNET_LATEST)
                 .maxTokens(2048)
-                .addMessage(MessageParam.builder()
-                        .role(MessageParam.Role.USER)
-                        .content("Tell me a story about building the best SDK!")
-                        .build());
+                .addUserMessage("Tell me a story about building the best SDK!");
 
         CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
         for (int i = 0; i < 4; i++) {
@@ -35,12 +31,7 @@ public final class MessagesConversationAsyncExample {
 
                         System.out.println("\n-----------------------------------\n");
 
-                        createParamsBuilder
-                                .addMessage(message)
-                                .addMessage(MessageParam.builder()
-                                        .role(MessageParam.Role.USER)
-                                        .content("But why?" + "?".repeat(index))
-                                        .build());
+                        createParamsBuilder.addMessage(message).addUserMessage("But why?" + "?".repeat(index));
                     });
         }
 

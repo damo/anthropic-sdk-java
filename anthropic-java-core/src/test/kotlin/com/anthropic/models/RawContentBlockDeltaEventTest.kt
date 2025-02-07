@@ -11,7 +11,7 @@ class RawContentBlockDeltaEventTest {
     fun createRawContentBlockDeltaEvent() {
         val rawContentBlockDeltaEvent =
             RawContentBlockDeltaEvent.builder()
-                .delta(TextDelta.builder().text("text").type(TextDelta.Type.TEXT_DELTA).build())
+                .textDelta("text")
                 .index(0L)
                 .type(RawContentBlockDeltaEvent.Type.CONTENT_BLOCK_DELTA)
                 .build()

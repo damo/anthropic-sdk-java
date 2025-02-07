@@ -1,16 +1,16 @@
 # Anthropic Java API Library
 
 > [!NOTE]  
-> The Anthropic Java API Library is currently in _alpha_.
+> The Anthropic Java API Library is currently in _beta_.
 >
-> There may be frequent breaking changes.
+> There may be minor breaking changes.
 >
-> Have thoughts or feedback? [File an issue](https://github.com/anthropics/anthropic-sdk-java/issues/new) or comment on [this thread](https://github.com/anthropics/anthropic-sdk-java/issues/30). 
+> Have thoughts or feedback? [File an issue](https://github.com/anthropics/anthropic-sdk-java/issues/new) or comment on [this discussion](https://github.com/anthropics/anthropic-sdk-java/discussions/95). 
 
 <!-- x-release-please-start-version -->
 
-[![Maven Central](https://img.shields.io/maven-central/v/com.anthropic/anthropic-java)](https://central.sonatype.com/artifact/com.anthropic/anthropic-java/0.1.0-alpha.9)
-[![javadoc](https://javadoc.io/badge2/com.anthropic/anthropic-java/0.1.0-alpha.9/javadoc.svg)](https://javadoc.io/doc/com.anthropic/anthropic-java/0.1.0-alpha.9)
+[![Maven Central](https://img.shields.io/maven-central/v/com.anthropic/anthropic-java)](https://central.sonatype.com/artifact/com.anthropic/anthropic-java/0.1.0)
+[![javadoc](https://javadoc.io/badge2/com.anthropic/anthropic-java/0.1.0/javadoc.svg)](https://javadoc.io/doc/com.anthropic/anthropic-java/0.1.0)
 
 <!-- x-release-please-end -->
 
@@ -25,7 +25,7 @@ The REST API documentation can be found on [docs.anthropic.com](https://docs.ant
 ### Gradle
 
 ```kotlin
-implementation("com.anthropic:anthropic-java:0.1.0-alpha.9")
+implementation("com.anthropic:anthropic-java:0.1.0")
 ```
 
 ### Maven
@@ -34,7 +34,7 @@ implementation("com.anthropic:anthropic-java:0.1.0-alpha.9")
 <dependency>
     <groupId>com.anthropic</groupId>
     <artifactId>anthropic-java</artifactId>
-    <version>0.1.0-alpha.9</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
@@ -83,15 +83,11 @@ To create a new message, first use the `MessageCreateParams` builder to specify 
 ```java
 import com.anthropic.models.Message;
 import com.anthropic.models.MessageCreateParams;
-import com.anthropic.models.MessageParam;
 import com.anthropic.models.Model;
 
 MessageCreateParams params = MessageCreateParams.builder()
     .maxTokens(1024L)
-    .addMessage(MessageParam.builder()
-        .role(MessageParam.Role.USER)
-        .content("Hello, Claude")
-        .build())
+    .addUserMessage("Hello, Claude")
     .model(Model.CLAUDE_3_5_HAIKU_LATEST)
     .build();
 Message message = client.messages().create(params);
@@ -146,19 +142,7 @@ See [Pagination](#pagination) below for more information on transparently workin
 
 To make a request to the Anthropic API, you generally build an instance of the appropriate `Params` class.
 
-In [Example: creating a resource](#example-creating-a-resource) above, we used the `MessageCreateParams.builder()` to pass to the `create` method of the `messages` service.
-
-Sometimes, the API may support other properties that are not yet supported in the Java SDK types. In that case, you can attach them using the `putAdditionalProperty` method.
-
-```java
-import com.anthropic.core.JsonValue;
-import com.anthropic.models.MessageCreateParams;
-
-MessageCreateParams params = MessageCreateParams.builder()
-    // ... normal properties
-    .putAdditionalProperty("secret_param", JsonValue.from("4242"))
-    .build();
-```
+See [Undocumented request params](#undocumented-request-params) for how to send arbitrary parameters.
 
 ## Responses
 
@@ -338,18 +322,26 @@ This library is typed for convenient access to the documented API. If you need t
 
 ### Undocumented request params
 
-To make requests using undocumented parameters, you can provide or override parameters on the params object while building it.
+In [Example: creating a resource](#example-creating-a-resource) above, we used the `MessageCreateParams.builder()` to pass to the `create` method of the `messages` service.
+
+Sometimes, the API may support other properties that are not yet supported in the Java SDK types. In that case, you can attach them using raw setters:
 
 ```java
-FooCreateParams address = FooCreateParams.builder()
-    .id("my_id")
-    .putAdditionalProperty("secret_prop", JsonValue.from("hello"))
+import com.anthropic.core.JsonValue;
+import com.anthropic.models.MessageCreateParams;
+
+MessageCreateParams params = MessageCreateParams.builder()
+    .putAdditionalHeader("Secret-Header", "42")
+    .putAdditionalQueryParam("secret_query_param", "42")
+    .putAdditionalBodyProperty("secretProperty", JsonValue.from("42"))
     .build();
 ```
 
+You can also use the `putAdditionalProperty` method on nested headers, query params, or body objects.
+
 ### Undocumented response properties
 
-To access undocumented response properties, you can use `res._additionalProperties()` on a response object to get a map of untyped fields of type `Map<String, JsonValue>`. You can then access fields like `._additionalProperties().get("secret_prop").asString()` or use other helpers defined on the `JsonValue` class to extract it to a desired type.
+To access undocumented response properties, you can use `res._additionalProperties()` on a response object to get a map of untyped fields of type `Map<String, JsonValue>`. You can then access fields like `res._additionalProperties().get("secret_prop").asString()` or use other helpers defined on the `JsonValue` class to extract it to a desired type.
 
 ## Logging
 

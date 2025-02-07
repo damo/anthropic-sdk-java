@@ -9,11 +9,9 @@ import org.junit.jupiter.api.Test
 class MessageCountTokensParamsTest {
 
     @Test
-    fun createMessageCountTokensParams() {
+    fun create() {
         MessageCountTokensParams.builder()
-            .addMessage(
-                MessageParam.builder().content("string").role(MessageParam.Role.USER).build()
-            )
+            .addUserMessage("string")
             .model(Model.CLAUDE_3_5_HAIKU_LATEST)
             .systemOfTextBlockParams(
                 listOf(
@@ -82,12 +80,10 @@ class MessageCountTokensParamsTest {
     }
 
     @Test
-    fun getBody() {
+    fun body() {
         val params =
             MessageCountTokensParams.builder()
-                .addMessage(
-                    MessageParam.builder().content("string").role(MessageParam.Role.USER).build()
-                )
+                .addUserMessage("string")
                 .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                 .systemOfTextBlockParams(
                     listOf(
@@ -153,7 +149,7 @@ class MessageCountTokensParamsTest {
                         .build()
                 )
                 .build()
-        val body = params.getBody()
+        val body = params._body()
         assertThat(body).isNotNull
         assertThat(body.messages())
             .isEqualTo(
@@ -237,15 +233,13 @@ class MessageCountTokensParamsTest {
     }
 
     @Test
-    fun getBodyWithoutOptionalFields() {
+    fun bodyWithoutOptionalFields() {
         val params =
             MessageCountTokensParams.builder()
-                .addMessage(
-                    MessageParam.builder().content("string").role(MessageParam.Role.USER).build()
-                )
+                .addUserMessage("string")
                 .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                 .build()
-        val body = params.getBody()
+        val body = params._body()
         assertThat(body).isNotNull
         assertThat(body.messages())
             .isEqualTo(

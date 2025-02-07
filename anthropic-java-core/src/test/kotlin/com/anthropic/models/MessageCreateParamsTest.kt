@@ -9,12 +9,10 @@ import org.junit.jupiter.api.Test
 class MessageCreateParamsTest {
 
     @Test
-    fun createMessageCreateParams() {
+    fun create() {
         MessageCreateParams.builder()
             .maxTokens(1024L)
-            .addMessage(
-                MessageParam.builder().content("Hello, world").role(MessageParam.Role.USER).build()
-            )
+            .addUserMessage("Hello, world")
             .model(Model.CLAUDE_3_5_HAIKU_LATEST)
             .metadata(Metadata.builder().userId("13803d75-b4b5-4c3e-b2a2-6f21399b021b").build())
             .addStopSequence("string")
@@ -88,16 +86,11 @@ class MessageCreateParamsTest {
     }
 
     @Test
-    fun getBody() {
+    fun body() {
         val params =
             MessageCreateParams.builder()
                 .maxTokens(1024L)
-                .addMessage(
-                    MessageParam.builder()
-                        .content("Hello, world")
-                        .role(MessageParam.Role.USER)
-                        .build()
-                )
+                .addUserMessage("Hello, world")
                 .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                 .metadata(Metadata.builder().userId("13803d75-b4b5-4c3e-b2a2-6f21399b021b").build())
                 .addStopSequence("string")
@@ -168,7 +161,7 @@ class MessageCreateParamsTest {
                 .topK(5L)
                 .topP(0.7)
                 .build()
-        val body = params.getBody()
+        val body = params._body()
         assertThat(body).isNotNull
         assertThat(body.maxTokens()).isEqualTo(1024L)
         assertThat(body.messages())
@@ -262,19 +255,14 @@ class MessageCreateParamsTest {
     }
 
     @Test
-    fun getBodyWithoutOptionalFields() {
+    fun bodyWithoutOptionalFields() {
         val params =
             MessageCreateParams.builder()
                 .maxTokens(1024L)
-                .addMessage(
-                    MessageParam.builder()
-                        .content("Hello, world")
-                        .role(MessageParam.Role.USER)
-                        .build()
-                )
+                .addUserMessage("Hello, world")
                 .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                 .build()
-        val body = params.getBody()
+        val body = params._body()
         assertThat(body).isNotNull
         assertThat(body.maxTokens()).isEqualTo(1024L)
         assertThat(body.messages())

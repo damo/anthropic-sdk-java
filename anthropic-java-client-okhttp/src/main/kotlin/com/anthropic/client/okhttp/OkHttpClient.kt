@@ -39,7 +39,58 @@ class OkHttpClient private constructor(
     private val credentials: Credentials?)
     : HttpClient {
 
-    private fun getClient(requestOptions: RequestOptions): okhttp3.OkHttpClient {
+    override fun execute(
+        request: HttpRequest,
+        requestOptions: RequestOptions,
+    ): HttpResponse {
+        val preparedRequest = credentials?.prepare(request) ?: request
+        val signRequest = preparedRequest.resolveUrl()
+        val signedRequest = credentials?.sign(signRequest) ?: signRequest
+        val call = newCall(signedRequest, requestOptions)
+
+        return try {
+            call.execute().toResponse()
+        } catch (e: IOException) {
+            throw AnthropicIoException("Request failed", e)
+        } finally {
+            signedRequest.body?.close()
+        }
+    }
+
+    override fun executeAsync(
+        request: HttpRequest,
+        requestOptions: RequestOptions,
+    ): CompletableFuture<HttpResponse> {
+        val preparedRequest = credentials?.prepare(request) ?: request
+        val signRequest = preparedRequest.resolveUrl()
+        val signedRequest = credentials?.sign(signRequest) ?: signRequest
+        val future = CompletableFuture<HttpResponse>()
+
+        signedRequest.body?.run { future.whenComplete { _, _ -> close() } }
+
+        newCall(signedRequest, requestOptions)
+            .enqueue(
+                object : Callback {
+                    override fun onResponse(call: Call, response: Response) {
+                        future.complete(response.toResponse())
+                    }
+
+                    override fun onFailure(call: Call, e: IOException) {
+                        future.completeExceptionally(AnthropicIoException("Request failed", e))
+                    }
+                }
+            )
+
+        return future
+    }
+
+    override fun close() {
+        okHttpClient.dispatcher.executorService.shutdown()
+        okHttpClient.connectionPool.evictAll()
+        okHttpClient.cache?.close()
+    }
+
+    private fun newCall(request: HttpRequest, requestOptions: RequestOptions): Call {
         val clientBuilder = okHttpClient.newBuilder()
 
         val logLevel =
@@ -66,70 +117,33 @@ class OkHttpClient private constructor(
                 .callTimeout(if (timeout.seconds == 0L) timeout else timeout.plusSeconds(30))
         }
 
-        return clientBuilder.build()
+        val client = clientBuilder.build()
+        return client.newCall(request.toRequest(client))
     }
 
-    override fun execute(
-        request: HttpRequest,
-        requestOptions: RequestOptions,
-    ): HttpResponse {
-        val preparedRequest = credentials?.prepare(request) ?: request
-        val signRequest = preparedRequest.resolveUrl()
-        val signedRequest = credentials?.sign(signRequest) ?: signRequest
-        val okHttpRequest = signedRequest.toRequest()
-        val call = getClient(requestOptions).newCall(okHttpRequest)
-
-        return try {
-            call.execute().toResponse()
-        } catch (e: IOException) {
-            throw AnthropicIoException("Request failed", e)
-        } finally {
-            signedRequest.body?.close()
-        }
-    }
-
-    override fun executeAsync(
-        request: HttpRequest,
-        requestOptions: RequestOptions,
-    ): CompletableFuture<HttpResponse> {
-        val preparedRequest = credentials?.prepare(request) ?: request
-        val signRequest = preparedRequest.resolveUrl()
-        val signedRequest = credentials?.sign(signRequest) ?: signRequest
-        val future = CompletableFuture<HttpResponse>()
-
-        signedRequest.body?.run { future.whenComplete { _, _ -> close() } }
-
-        val call = getClient(requestOptions).newCall(signedRequest.toRequest())
-        call.enqueue(
-            object : Callback {
-                override fun onResponse(call: Call, response: Response) {
-                    future.complete(response.toResponse())
-                }
-
-                override fun onFailure(call: Call, e: IOException) {
-                    future.completeExceptionally(AnthropicIoException("Request failed", e))
-                }
-            }
-        )
-
-        return future
-    }
-
-    override fun close() {
-        okHttpClient.dispatcher.executorService.shutdown()
-        okHttpClient.connectionPool.evictAll()
-        okHttpClient.cache?.close()
-    }
-
-    private fun HttpRequest.toRequest(): Request {
+    private fun HttpRequest.toRequest(client: okhttp3.OkHttpClient): Request {
         var body: RequestBody? = body?.toRequestBody()
-        // OkHttpClient always requires a request body for PUT and POST methods.
-        if (body == null && (method == HttpMethod.PUT || method == HttpMethod.POST)) {
+        if (body == null && requiresBody(method)) {
             body = "".toRequestBody()
         }
         val builder = Request.Builder().url(url ?: "").method(method.name, body)
         headers.names().forEach { name ->
             headers.values(name).forEach { builder.header(name, it) }
+        }
+
+        if (
+            !headers.names().contains("X-Stainless-Read-Timeout") && client.readTimeoutMillis != 0
+        ) {
+            builder.header(
+                "X-Stainless-Read-Timeout",
+                Duration.ofMillis(client.readTimeoutMillis.toLong()).seconds.toString()
+            )
+        }
+        if (!headers.names().contains("X-Stainless-Timeout") && client.callTimeoutMillis != 0) {
+            builder.header(
+                "X-Stainless-Timeout",
+                Duration.ofMillis(client.callTimeoutMillis.toLong()).seconds.toString()
+            )
         }
 
         return builder.build()
@@ -145,6 +159,15 @@ class OkHttpClient private constructor(
     private fun HttpRequest.resolveUrl(): HttpRequest {
         return toBuilder().url(toUrl()).build()
     }
+
+    /** `OkHttpClient` always requires a request body for some methods. */
+    private fun requiresBody(method: HttpMethod): Boolean =
+        when (method) {
+            HttpMethod.POST,
+            HttpMethod.PUT,
+            HttpMethod.PATCH -> true
+            else -> false
+        }
 
     private fun HttpRequest.toUrl(): String {
         url?.let {

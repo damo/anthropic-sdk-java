@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test
 class BetaMessageBatchCreateParamsTest {
 
     @Test
-    fun createBetaMessageBatchCreateParams() {
+    fun create() {
         BetaMessageBatchCreateParams.builder()
             .addRequest(
                 BetaMessageBatchCreateParams.Request.builder()
@@ -17,12 +17,7 @@ class BetaMessageBatchCreateParamsTest {
                     .params(
                         BetaMessageBatchCreateParams.Request.Params.builder()
                             .maxTokens(1024L)
-                            .addMessage(
-                                BetaMessageParam.builder()
-                                    .content("Hello, world")
-                                    .role(BetaMessageParam.Role.USER)
-                                    .build()
-                            )
+                            .addUserMessage("Hello, world")
                             .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                             .metadata(
                                 BetaMetadata.builder()
@@ -109,7 +104,7 @@ class BetaMessageBatchCreateParamsTest {
     }
 
     @Test
-    fun getBody() {
+    fun body() {
         val params =
             BetaMessageBatchCreateParams.builder()
                 .addRequest(
@@ -118,12 +113,7 @@ class BetaMessageBatchCreateParamsTest {
                         .params(
                             BetaMessageBatchCreateParams.Request.Params.builder()
                                 .maxTokens(1024L)
-                                .addMessage(
-                                    BetaMessageParam.builder()
-                                        .content("Hello, world")
-                                        .role(BetaMessageParam.Role.USER)
-                                        .build()
-                                )
+                                .addUserMessage("Hello, world")
                                 .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                                 .metadata(
                                     BetaMetadata.builder()
@@ -208,7 +198,7 @@ class BetaMessageBatchCreateParamsTest {
                 )
                 .addBeta(AnthropicBeta.MESSAGE_BATCHES_2024_09_24)
                 .build()
-        val body = params.getBody()
+        val body = params._body()
         assertThat(body).isNotNull
         assertThat(body.requests())
             .isEqualTo(
@@ -218,12 +208,7 @@ class BetaMessageBatchCreateParamsTest {
                         .params(
                             BetaMessageBatchCreateParams.Request.Params.builder()
                                 .maxTokens(1024L)
-                                .addMessage(
-                                    BetaMessageParam.builder()
-                                        .content("Hello, world")
-                                        .role(BetaMessageParam.Role.USER)
-                                        .build()
-                                )
+                                .addUserMessage("Hello, world")
                                 .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                                 .metadata(
                                     BetaMetadata.builder()
@@ -310,7 +295,7 @@ class BetaMessageBatchCreateParamsTest {
     }
 
     @Test
-    fun getBodyWithoutOptionalFields() {
+    fun bodyWithoutOptionalFields() {
         val params =
             BetaMessageBatchCreateParams.builder()
                 .addRequest(
@@ -319,19 +304,14 @@ class BetaMessageBatchCreateParamsTest {
                         .params(
                             BetaMessageBatchCreateParams.Request.Params.builder()
                                 .maxTokens(1024L)
-                                .addMessage(
-                                    BetaMessageParam.builder()
-                                        .content("Hello, world")
-                                        .role(BetaMessageParam.Role.USER)
-                                        .build()
-                                )
+                                .addUserMessage("Hello, world")
                                 .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                                 .build()
                         )
                         .build()
                 )
                 .build()
-        val body = params.getBody()
+        val body = params._body()
         assertThat(body).isNotNull
         assertThat(body.requests())
             .isEqualTo(
@@ -341,12 +321,7 @@ class BetaMessageBatchCreateParamsTest {
                         .params(
                             BetaMessageBatchCreateParams.Request.Params.builder()
                                 .maxTokens(1024L)
-                                .addMessage(
-                                    BetaMessageParam.builder()
-                                        .content("Hello, world")
-                                        .role(BetaMessageParam.Role.USER)
-                                        .build()
-                                )
+                                .addUserMessage("Hello, world")
                                 .model(Model.CLAUDE_3_5_HAIKU_LATEST)
                                 .build()
                         )

@@ -9,6 +9,7 @@ import com.anthropic.core.JsonField
 import com.anthropic.core.JsonMissing
 import com.anthropic.core.JsonValue
 import com.anthropic.core.NoAutoDetect
+import com.anthropic.core.Params
 import com.anthropic.core.checkRequired
 import com.anthropic.core.getOrThrow
 import com.anthropic.core.http.Headers
@@ -42,7 +43,7 @@ private constructor(
     private val body: MessageBatchCreateBody,
     private val additionalHeaders: Headers,
     private val additionalQueryParams: QueryParams,
-) {
+) : Params {
 
     /**
      * List of requests for prompt completion. Each is an individual request to create a Message.
@@ -60,11 +61,11 @@ private constructor(
 
     fun _additionalQueryParams(): QueryParams = additionalQueryParams
 
-    @JvmSynthetic internal fun getBody(): MessageBatchCreateBody = body
+    @JvmSynthetic internal fun _body(): MessageBatchCreateBody = body
 
-    @JvmSynthetic internal fun getHeaders(): Headers = additionalHeaders
+    override fun _headers(): Headers = additionalHeaders
 
-    @JvmSynthetic internal fun getQueryParams(): QueryParams = additionalQueryParams
+    override fun _queryParams(): QueryParams = additionalQueryParams
 
     @NoAutoDetect
     class MessageBatchCreateBody
@@ -1492,6 +1493,520 @@ private constructor(
                 fun addMessage(message: Message) = addMessage(message.toParam())
 
                 /**
+                 * Input messages.
+                 *
+                 * Our models are trained to operate on alternating `user` and `assistant`
+                 * conversational turns. When creating a new `Message`, you specify the prior
+                 * conversational turns with the `messages` parameter, and the model then generates
+                 * the next `Message` in the conversation. Consecutive `user` or `assistant` turns
+                 * in your request will be combined into a single turn.
+                 *
+                 * Each input message must be an object with a `role` and `content`. You can specify
+                 * a single `user`-role message, or you can include multiple `user` and `assistant`
+                 * messages.
+                 *
+                 * If the final message uses the `assistant` role, the response content will
+                 * continue immediately from the content in that message. This can be used to
+                 * constrain part of the model's response.
+                 *
+                 * Example with a single `user` message:
+                 * ```json
+                 * [{ "role": "user", "content": "Hello, Claude" }]
+                 * ```
+                 *
+                 * Example with multiple conversational turns:
+                 * ```json
+                 * [
+                 *   { "role": "user", "content": "Hello there." },
+                 *   { "role": "assistant", "content": "Hi, I'm Claude. How can I help you?" },
+                 *   { "role": "user", "content": "Can you explain LLMs in plain English?" }
+                 * ]
+                 * ```
+                 *
+                 * Example with a partially-filled response from Claude:
+                 * ```json
+                 * [
+                 *   {
+                 *     "role": "user",
+                 *     "content": "What's the Greek name for Sun? (A) Sol (B) Helios (C) Sun"
+                 *   },
+                 *   { "role": "assistant", "content": "The best answer is (" }
+                 * ]
+                 * ```
+                 *
+                 * Each input message `content` may be either a single `string` or an array of
+                 * content blocks, where each block has a specific `type`. Using a `string` for
+                 * `content` is shorthand for an array of one content block of type `"text"`. The
+                 * following input messages are equivalent:
+                 * ```json
+                 * { "role": "user", "content": "Hello, Claude" }
+                 * ```
+                 * ```json
+                 * { "role": "user", "content": [{ "type": "text", "text": "Hello, Claude" }] }
+                 * ```
+                 *
+                 * Starting with Claude 3 models, you can also send image content blocks:
+                 * ```json
+                 * {
+                 *   "role": "user",
+                 *   "content": [
+                 *     {
+                 *       "type": "image",
+                 *       "source": {
+                 *         "type": "base64",
+                 *         "media_type": "image/jpeg",
+                 *         "data": "/9j/4AAQSkZJRg..."
+                 *       }
+                 *     },
+                 *     { "type": "text", "text": "What is in this image?" }
+                 *   ]
+                 * }
+                 * ```
+                 *
+                 * We currently support the `base64` source type for images, and the `image/jpeg`,
+                 * `image/png`, `image/gif`, and `image/webp` media types.
+                 *
+                 * See [examples](https://docs.anthropic.com/en/api/messages-examples#vision) for
+                 * more input examples.
+                 *
+                 * Note that if you want to include a
+                 * [system prompt](https://docs.anthropic.com/en/docs/system-prompts), you can use
+                 * the top-level `system` parameter — there is no `"system"` role for input messages
+                 * in the Messages API.
+                 */
+                fun addUserMessage(content: MessageParam.Content) =
+                    addMessage(
+                        MessageParam.builder().role(MessageParam.Role.USER).content(content).build()
+                    )
+
+                /**
+                 * Input messages.
+                 *
+                 * Our models are trained to operate on alternating `user` and `assistant`
+                 * conversational turns. When creating a new `Message`, you specify the prior
+                 * conversational turns with the `messages` parameter, and the model then generates
+                 * the next `Message` in the conversation. Consecutive `user` or `assistant` turns
+                 * in your request will be combined into a single turn.
+                 *
+                 * Each input message must be an object with a `role` and `content`. You can specify
+                 * a single `user`-role message, or you can include multiple `user` and `assistant`
+                 * messages.
+                 *
+                 * If the final message uses the `assistant` role, the response content will
+                 * continue immediately from the content in that message. This can be used to
+                 * constrain part of the model's response.
+                 *
+                 * Example with a single `user` message:
+                 * ```json
+                 * [{ "role": "user", "content": "Hello, Claude" }]
+                 * ```
+                 *
+                 * Example with multiple conversational turns:
+                 * ```json
+                 * [
+                 *   { "role": "user", "content": "Hello there." },
+                 *   { "role": "assistant", "content": "Hi, I'm Claude. How can I help you?" },
+                 *   { "role": "user", "content": "Can you explain LLMs in plain English?" }
+                 * ]
+                 * ```
+                 *
+                 * Example with a partially-filled response from Claude:
+                 * ```json
+                 * [
+                 *   {
+                 *     "role": "user",
+                 *     "content": "What's the Greek name for Sun? (A) Sol (B) Helios (C) Sun"
+                 *   },
+                 *   { "role": "assistant", "content": "The best answer is (" }
+                 * ]
+                 * ```
+                 *
+                 * Each input message `content` may be either a single `string` or an array of
+                 * content blocks, where each block has a specific `type`. Using a `string` for
+                 * `content` is shorthand for an array of one content block of type `"text"`. The
+                 * following input messages are equivalent:
+                 * ```json
+                 * { "role": "user", "content": "Hello, Claude" }
+                 * ```
+                 * ```json
+                 * { "role": "user", "content": [{ "type": "text", "text": "Hello, Claude" }] }
+                 * ```
+                 *
+                 * Starting with Claude 3 models, you can also send image content blocks:
+                 * ```json
+                 * {
+                 *   "role": "user",
+                 *   "content": [
+                 *     {
+                 *       "type": "image",
+                 *       "source": {
+                 *         "type": "base64",
+                 *         "media_type": "image/jpeg",
+                 *         "data": "/9j/4AAQSkZJRg..."
+                 *       }
+                 *     },
+                 *     { "type": "text", "text": "What is in this image?" }
+                 *   ]
+                 * }
+                 * ```
+                 *
+                 * We currently support the `base64` source type for images, and the `image/jpeg`,
+                 * `image/png`, `image/gif`, and `image/webp` media types.
+                 *
+                 * See [examples](https://docs.anthropic.com/en/api/messages-examples#vision) for
+                 * more input examples.
+                 *
+                 * Note that if you want to include a
+                 * [system prompt](https://docs.anthropic.com/en/docs/system-prompts), you can use
+                 * the top-level `system` parameter — there is no `"system"` role for input messages
+                 * in the Messages API.
+                 */
+                fun addUserMessage(string: String) =
+                    addUserMessage(MessageParam.Content.ofString(string))
+
+                /**
+                 * Input messages.
+                 *
+                 * Our models are trained to operate on alternating `user` and `assistant`
+                 * conversational turns. When creating a new `Message`, you specify the prior
+                 * conversational turns with the `messages` parameter, and the model then generates
+                 * the next `Message` in the conversation. Consecutive `user` or `assistant` turns
+                 * in your request will be combined into a single turn.
+                 *
+                 * Each input message must be an object with a `role` and `content`. You can specify
+                 * a single `user`-role message, or you can include multiple `user` and `assistant`
+                 * messages.
+                 *
+                 * If the final message uses the `assistant` role, the response content will
+                 * continue immediately from the content in that message. This can be used to
+                 * constrain part of the model's response.
+                 *
+                 * Example with a single `user` message:
+                 * ```json
+                 * [{ "role": "user", "content": "Hello, Claude" }]
+                 * ```
+                 *
+                 * Example with multiple conversational turns:
+                 * ```json
+                 * [
+                 *   { "role": "user", "content": "Hello there." },
+                 *   { "role": "assistant", "content": "Hi, I'm Claude. How can I help you?" },
+                 *   { "role": "user", "content": "Can you explain LLMs in plain English?" }
+                 * ]
+                 * ```
+                 *
+                 * Example with a partially-filled response from Claude:
+                 * ```json
+                 * [
+                 *   {
+                 *     "role": "user",
+                 *     "content": "What's the Greek name for Sun? (A) Sol (B) Helios (C) Sun"
+                 *   },
+                 *   { "role": "assistant", "content": "The best answer is (" }
+                 * ]
+                 * ```
+                 *
+                 * Each input message `content` may be either a single `string` or an array of
+                 * content blocks, where each block has a specific `type`. Using a `string` for
+                 * `content` is shorthand for an array of one content block of type `"text"`. The
+                 * following input messages are equivalent:
+                 * ```json
+                 * { "role": "user", "content": "Hello, Claude" }
+                 * ```
+                 * ```json
+                 * { "role": "user", "content": [{ "type": "text", "text": "Hello, Claude" }] }
+                 * ```
+                 *
+                 * Starting with Claude 3 models, you can also send image content blocks:
+                 * ```json
+                 * {
+                 *   "role": "user",
+                 *   "content": [
+                 *     {
+                 *       "type": "image",
+                 *       "source": {
+                 *         "type": "base64",
+                 *         "media_type": "image/jpeg",
+                 *         "data": "/9j/4AAQSkZJRg..."
+                 *       }
+                 *     },
+                 *     { "type": "text", "text": "What is in this image?" }
+                 *   ]
+                 * }
+                 * ```
+                 *
+                 * We currently support the `base64` source type for images, and the `image/jpeg`,
+                 * `image/png`, `image/gif`, and `image/webp` media types.
+                 *
+                 * See [examples](https://docs.anthropic.com/en/api/messages-examples#vision) for
+                 * more input examples.
+                 *
+                 * Note that if you want to include a
+                 * [system prompt](https://docs.anthropic.com/en/docs/system-prompts), you can use
+                 * the top-level `system` parameter — there is no `"system"` role for input messages
+                 * in the Messages API.
+                 */
+                fun addUserMessageOfBlockParams(blockParams: List<ContentBlockParam>) =
+                    addUserMessage(MessageParam.Content.ofBlockParams(blockParams))
+
+                /**
+                 * Input messages.
+                 *
+                 * Our models are trained to operate on alternating `user` and `assistant`
+                 * conversational turns. When creating a new `Message`, you specify the prior
+                 * conversational turns with the `messages` parameter, and the model then generates
+                 * the next `Message` in the conversation. Consecutive `user` or `assistant` turns
+                 * in your request will be combined into a single turn.
+                 *
+                 * Each input message must be an object with a `role` and `content`. You can specify
+                 * a single `user`-role message, or you can include multiple `user` and `assistant`
+                 * messages.
+                 *
+                 * If the final message uses the `assistant` role, the response content will
+                 * continue immediately from the content in that message. This can be used to
+                 * constrain part of the model's response.
+                 *
+                 * Example with a single `user` message:
+                 * ```json
+                 * [{ "role": "user", "content": "Hello, Claude" }]
+                 * ```
+                 *
+                 * Example with multiple conversational turns:
+                 * ```json
+                 * [
+                 *   { "role": "user", "content": "Hello there." },
+                 *   { "role": "assistant", "content": "Hi, I'm Claude. How can I help you?" },
+                 *   { "role": "user", "content": "Can you explain LLMs in plain English?" }
+                 * ]
+                 * ```
+                 *
+                 * Example with a partially-filled response from Claude:
+                 * ```json
+                 * [
+                 *   {
+                 *     "role": "user",
+                 *     "content": "What's the Greek name for Sun? (A) Sol (B) Helios (C) Sun"
+                 *   },
+                 *   { "role": "assistant", "content": "The best answer is (" }
+                 * ]
+                 * ```
+                 *
+                 * Each input message `content` may be either a single `string` or an array of
+                 * content blocks, where each block has a specific `type`. Using a `string` for
+                 * `content` is shorthand for an array of one content block of type `"text"`. The
+                 * following input messages are equivalent:
+                 * ```json
+                 * { "role": "user", "content": "Hello, Claude" }
+                 * ```
+                 * ```json
+                 * { "role": "user", "content": [{ "type": "text", "text": "Hello, Claude" }] }
+                 * ```
+                 *
+                 * Starting with Claude 3 models, you can also send image content blocks:
+                 * ```json
+                 * {
+                 *   "role": "user",
+                 *   "content": [
+                 *     {
+                 *       "type": "image",
+                 *       "source": {
+                 *         "type": "base64",
+                 *         "media_type": "image/jpeg",
+                 *         "data": "/9j/4AAQSkZJRg..."
+                 *       }
+                 *     },
+                 *     { "type": "text", "text": "What is in this image?" }
+                 *   ]
+                 * }
+                 * ```
+                 *
+                 * We currently support the `base64` source type for images, and the `image/jpeg`,
+                 * `image/png`, `image/gif`, and `image/webp` media types.
+                 *
+                 * See [examples](https://docs.anthropic.com/en/api/messages-examples#vision) for
+                 * more input examples.
+                 *
+                 * Note that if you want to include a
+                 * [system prompt](https://docs.anthropic.com/en/docs/system-prompts), you can use
+                 * the top-level `system` parameter — there is no `"system"` role for input messages
+                 * in the Messages API.
+                 */
+                fun addAssistantMessage(content: MessageParam.Content) =
+                    addMessage(
+                        MessageParam.builder().role(MessageParam.Role.USER).content(content).build()
+                    )
+
+                /**
+                 * Input messages.
+                 *
+                 * Our models are trained to operate on alternating `user` and `assistant`
+                 * conversational turns. When creating a new `Message`, you specify the prior
+                 * conversational turns with the `messages` parameter, and the model then generates
+                 * the next `Message` in the conversation. Consecutive `user` or `assistant` turns
+                 * in your request will be combined into a single turn.
+                 *
+                 * Each input message must be an object with a `role` and `content`. You can specify
+                 * a single `user`-role message, or you can include multiple `user` and `assistant`
+                 * messages.
+                 *
+                 * If the final message uses the `assistant` role, the response content will
+                 * continue immediately from the content in that message. This can be used to
+                 * constrain part of the model's response.
+                 *
+                 * Example with a single `user` message:
+                 * ```json
+                 * [{ "role": "user", "content": "Hello, Claude" }]
+                 * ```
+                 *
+                 * Example with multiple conversational turns:
+                 * ```json
+                 * [
+                 *   { "role": "user", "content": "Hello there." },
+                 *   { "role": "assistant", "content": "Hi, I'm Claude. How can I help you?" },
+                 *   { "role": "user", "content": "Can you explain LLMs in plain English?" }
+                 * ]
+                 * ```
+                 *
+                 * Example with a partially-filled response from Claude:
+                 * ```json
+                 * [
+                 *   {
+                 *     "role": "user",
+                 *     "content": "What's the Greek name for Sun? (A) Sol (B) Helios (C) Sun"
+                 *   },
+                 *   { "role": "assistant", "content": "The best answer is (" }
+                 * ]
+                 * ```
+                 *
+                 * Each input message `content` may be either a single `string` or an array of
+                 * content blocks, where each block has a specific `type`. Using a `string` for
+                 * `content` is shorthand for an array of one content block of type `"text"`. The
+                 * following input messages are equivalent:
+                 * ```json
+                 * { "role": "user", "content": "Hello, Claude" }
+                 * ```
+                 * ```json
+                 * { "role": "user", "content": [{ "type": "text", "text": "Hello, Claude" }] }
+                 * ```
+                 *
+                 * Starting with Claude 3 models, you can also send image content blocks:
+                 * ```json
+                 * {
+                 *   "role": "user",
+                 *   "content": [
+                 *     {
+                 *       "type": "image",
+                 *       "source": {
+                 *         "type": "base64",
+                 *         "media_type": "image/jpeg",
+                 *         "data": "/9j/4AAQSkZJRg..."
+                 *       }
+                 *     },
+                 *     { "type": "text", "text": "What is in this image?" }
+                 *   ]
+                 * }
+                 * ```
+                 *
+                 * We currently support the `base64` source type for images, and the `image/jpeg`,
+                 * `image/png`, `image/gif`, and `image/webp` media types.
+                 *
+                 * See [examples](https://docs.anthropic.com/en/api/messages-examples#vision) for
+                 * more input examples.
+                 *
+                 * Note that if you want to include a
+                 * [system prompt](https://docs.anthropic.com/en/docs/system-prompts), you can use
+                 * the top-level `system` parameter — there is no `"system"` role for input messages
+                 * in the Messages API.
+                 */
+                fun addAssistantMessage(string: String) =
+                    addAssistantMessage(MessageParam.Content.ofString(string))
+
+                /**
+                 * Input messages.
+                 *
+                 * Our models are trained to operate on alternating `user` and `assistant`
+                 * conversational turns. When creating a new `Message`, you specify the prior
+                 * conversational turns with the `messages` parameter, and the model then generates
+                 * the next `Message` in the conversation. Consecutive `user` or `assistant` turns
+                 * in your request will be combined into a single turn.
+                 *
+                 * Each input message must be an object with a `role` and `content`. You can specify
+                 * a single `user`-role message, or you can include multiple `user` and `assistant`
+                 * messages.
+                 *
+                 * If the final message uses the `assistant` role, the response content will
+                 * continue immediately from the content in that message. This can be used to
+                 * constrain part of the model's response.
+                 *
+                 * Example with a single `user` message:
+                 * ```json
+                 * [{ "role": "user", "content": "Hello, Claude" }]
+                 * ```
+                 *
+                 * Example with multiple conversational turns:
+                 * ```json
+                 * [
+                 *   { "role": "user", "content": "Hello there." },
+                 *   { "role": "assistant", "content": "Hi, I'm Claude. How can I help you?" },
+                 *   { "role": "user", "content": "Can you explain LLMs in plain English?" }
+                 * ]
+                 * ```
+                 *
+                 * Example with a partially-filled response from Claude:
+                 * ```json
+                 * [
+                 *   {
+                 *     "role": "user",
+                 *     "content": "What's the Greek name for Sun? (A) Sol (B) Helios (C) Sun"
+                 *   },
+                 *   { "role": "assistant", "content": "The best answer is (" }
+                 * ]
+                 * ```
+                 *
+                 * Each input message `content` may be either a single `string` or an array of
+                 * content blocks, where each block has a specific `type`. Using a `string` for
+                 * `content` is shorthand for an array of one content block of type `"text"`. The
+                 * following input messages are equivalent:
+                 * ```json
+                 * { "role": "user", "content": "Hello, Claude" }
+                 * ```
+                 * ```json
+                 * { "role": "user", "content": [{ "type": "text", "text": "Hello, Claude" }] }
+                 * ```
+                 *
+                 * Starting with Claude 3 models, you can also send image content blocks:
+                 * ```json
+                 * {
+                 *   "role": "user",
+                 *   "content": [
+                 *     {
+                 *       "type": "image",
+                 *       "source": {
+                 *         "type": "base64",
+                 *         "media_type": "image/jpeg",
+                 *         "data": "/9j/4AAQSkZJRg..."
+                 *       }
+                 *     },
+                 *     { "type": "text", "text": "What is in this image?" }
+                 *   ]
+                 * }
+                 * ```
+                 *
+                 * We currently support the `base64` source type for images, and the `image/jpeg`,
+                 * `image/png`, `image/gif`, and `image/webp` media types.
+                 *
+                 * See [examples](https://docs.anthropic.com/en/api/messages-examples#vision) for
+                 * more input examples.
+                 *
+                 * Note that if you want to include a
+                 * [system prompt](https://docs.anthropic.com/en/docs/system-prompts), you can use
+                 * the top-level `system` parameter — there is no `"system"` role for input messages
+                 * in the Messages API.
+                 */
+                fun addAssistantMessageOfBlockParams(blockParams: List<ContentBlockParam>) =
+                    addAssistantMessage(MessageParam.Content.ofBlockParams(blockParams))
+
+                /**
                  * The model that will complete your prompt.\n\nSee
                  * [models](https://docs.anthropic.com/en/docs/models-overview) for additional
                  * details and options.
@@ -1672,6 +2187,12 @@ private constructor(
 
                 /** The model will use the specified tool with `tool_choice.name`. */
                 fun toolChoice(tool: ToolChoiceTool) = toolChoice(ToolChoice.ofTool(tool))
+
+                /** The model will use the specified tool with `tool_choice.name`. */
+                fun toolToolChoice(name: String) =
+                    toolChoice(
+                        ToolChoiceTool.builder().type(ToolChoiceTool.Type.TOOL).name(name).build()
+                    )
 
                 /**
                  * Definitions of tools that the model may use.

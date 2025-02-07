@@ -4,7 +4,6 @@ import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.models.Message;
 import com.anthropic.models.MessageCreateParams;
-import com.anthropic.models.MessageParam;
 import com.anthropic.models.Model;
 
 public final class MessagesConversationExample {
@@ -19,10 +18,7 @@ public final class MessagesConversationExample {
         MessageCreateParams.Builder createParamsBuilder = MessageCreateParams.builder()
                 .model(Model.CLAUDE_3_5_SONNET_LATEST)
                 .maxTokens(2048)
-                .addMessage(MessageParam.builder()
-                        .role(MessageParam.Role.USER)
-                        .content("Tell me a story about building the best SDK!")
-                        .build());
+                .addUserMessage("Tell me a story about building the best SDK!");
 
         for (int i = 0; i < 4; i++) {
             Message message = client.messages().create(createParamsBuilder.build());
@@ -33,12 +29,7 @@ public final class MessagesConversationExample {
 
             System.out.println("\n-----------------------------------\n");
 
-            createParamsBuilder
-                    .addMessage(message)
-                    .addMessage(MessageParam.builder()
-                            .role(MessageParam.Role.USER)
-                            .content("But why?" + "?".repeat(i))
-                            .build());
+            createParamsBuilder.addMessage(message).addUserMessage("But why?" + "?".repeat(i));
         }
     }
 }

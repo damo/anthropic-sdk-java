@@ -3,8 +3,6 @@ package com.anthropic.example;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.models.MessageCreateParams;
-import com.anthropic.models.MessageParam;
-import com.anthropic.models.MessageParam.Role;
 import com.anthropic.models.Model;
 
 public final class MessagesExample {
@@ -17,10 +15,7 @@ public final class MessagesExample {
         MessageCreateParams createParams = MessageCreateParams.builder()
                 .model(Model.CLAUDE_3_5_SONNET_LATEST)
                 .maxTokens(2048)
-                .addMessage(MessageParam.builder()
-                        .role(Role.USER)
-                        .content("Tell me a story about building the best SDK!")
-                        .build())
+                .addUserMessage("Tell me a story about building the best SDK!")
                 .build();
 
         client.messages().create(createParams).content().stream()

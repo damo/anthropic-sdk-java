@@ -11,9 +11,7 @@ class BetaRawContentBlockDeltaEventTest {
     fun createBetaRawContentBlockDeltaEvent() {
         val betaRawContentBlockDeltaEvent =
             BetaRawContentBlockDeltaEvent.builder()
-                .delta(
-                    BetaTextDelta.builder().text("text").type(BetaTextDelta.Type.TEXT_DELTA).build()
-                )
+                .betaTextDelta("text")
                 .index(0L)
                 .type(BetaRawContentBlockDeltaEvent.Type.CONTENT_BLOCK_DELTA)
                 .build()

@@ -16,6 +16,7 @@ import com.anthropic.core.http.HttpResponse.Handler
 import com.anthropic.core.http.StreamResponse
 import com.anthropic.core.http.map
 import com.anthropic.core.json
+import com.anthropic.core.prepare
 import com.anthropic.errors.AnthropicError
 import com.anthropic.models.BetaMessage
 import com.anthropic.models.BetaMessageCountTokensParams
@@ -55,27 +56,22 @@ internal constructor(
                 .method(HttpMethod.POST)
                 .addPathSegments("v1", "messages")
                 .putQueryParam("beta", "true")
-                .putAllQueryParams(clientOptions.queryParams)
-                .replaceAllQueryParams(params.getQueryParams())
-                .putAllHeaders(clientOptions.headers)
-                .replaceAllHeaders(params.getHeaders())
-                .body(json(clientOptions.jsonMapper, params.getBody()))
+                .body(json(clientOptions.jsonMapper, params._body()))
                 .build()
-        return clientOptions.httpClient
-            .execute(
+                .prepare(clientOptions, params)
+        val response =
+            clientOptions.httpClient.execute(
                 request,
                 requestOptions.applyDefaults(
                     RequestOptions.builder().timeout(Duration.ofMillis(600000)).build()
                 )
             )
-            .let { response ->
-                response
-                    .use { createHandler.handle(it) }
-                    .apply {
-                        if (requestOptions.responseValidation ?: clientOptions.responseValidation) {
-                            validate()
-                        }
-                    }
+        return response
+            .use { createHandler.handle(it) }
+            .also {
+                if (requestOptions.responseValidation ?: clientOptions.responseValidation) {
+                    it.validate()
+                }
             }
     }
 
@@ -99,38 +95,33 @@ internal constructor(
                 .method(HttpMethod.POST)
                 .addPathSegments("v1", "messages")
                 .putQueryParam("beta", "true")
-                .putAllQueryParams(clientOptions.queryParams)
-                .replaceAllQueryParams(params.getQueryParams())
-                .putAllHeaders(clientOptions.headers)
-                .replaceAllHeaders(params.getHeaders())
                 .body(
                     json(
                         clientOptions.jsonMapper,
                         params
-                            .getBody()
+                            ._body()
                             .toBuilder()
                             .putAdditionalProperty("stream", JsonValue.from(true))
                             .build()
                     )
                 )
                 .build()
-        return clientOptions.httpClient
-            .execute(
+                .prepare(clientOptions, params)
+        val response =
+            clientOptions.httpClient.execute(
                 request,
                 requestOptions.applyDefaults(
                     RequestOptions.builder().timeout(Duration.ofMillis(600000)).build()
                 )
             )
-            .let { response ->
-                response
-                    .let { createStreamingHandler.handle(it) }
-                    .let { streamResponse ->
-                        if (requestOptions.responseValidation ?: clientOptions.responseValidation) {
-                            streamResponse.map { it.validate() }
-                        } else {
-                            streamResponse
-                        }
-                    }
+        return response
+            .let { createStreamingHandler.handle(it) }
+            .let { streamResponse ->
+                if (requestOptions.responseValidation ?: clientOptions.responseValidation) {
+                    streamResponse.map { it.validate() }
+                } else {
+                    streamResponse
+                }
             }
     }
 
@@ -152,20 +143,16 @@ internal constructor(
                 .method(HttpMethod.POST)
                 .addPathSegments("v1", "messages", "count_tokens")
                 .putQueryParam("beta", "true")
-                .putAllQueryParams(clientOptions.queryParams)
-                .replaceAllQueryParams(params.getQueryParams())
-                .putAllHeaders(clientOptions.headers)
-                .replaceAllHeaders(params.getHeaders())
-                .body(json(clientOptions.jsonMapper, params.getBody()))
+                .body(json(clientOptions.jsonMapper, params._body()))
                 .build()
-        return clientOptions.httpClient.execute(request, requestOptions).let { response ->
-            response
-                .use { countTokensHandler.handle(it) }
-                .apply {
-                    if (requestOptions.responseValidation ?: clientOptions.responseValidation) {
-                        validate()
-                    }
+                .prepare(clientOptions, params)
+        val response = clientOptions.httpClient.execute(request, requestOptions)
+        return response
+            .use { countTokensHandler.handle(it) }
+            .also {
+                if (requestOptions.responseValidation ?: clientOptions.responseValidation) {
+                    it.validate()
                 }
-        }
+            }
     }
 }

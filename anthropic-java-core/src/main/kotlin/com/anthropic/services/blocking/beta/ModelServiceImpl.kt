@@ -10,6 +10,7 @@ import com.anthropic.core.handlers.withErrorHandler
 import com.anthropic.core.http.HttpMethod
 import com.anthropic.core.http.HttpRequest
 import com.anthropic.core.http.HttpResponse.Handler
+import com.anthropic.core.prepare
 import com.anthropic.errors.AnthropicError
 import com.anthropic.models.BetaModelInfo
 import com.anthropic.models.BetaModelListPage
@@ -41,20 +42,16 @@ internal constructor(
                 .method(HttpMethod.GET)
                 .addPathSegments("v1", "models", params.getPathParam(0))
                 .putQueryParam("beta", "true")
-                .putAllQueryParams(clientOptions.queryParams)
-                .replaceAllQueryParams(params.getQueryParams())
-                .putAllHeaders(clientOptions.headers)
-                .replaceAllHeaders(params.getHeaders())
                 .build()
-        return clientOptions.httpClient.execute(request, requestOptions).let { response ->
-            response
-                .use { retrieveHandler.handle(it) }
-                .apply {
-                    if (requestOptions.responseValidation ?: clientOptions.responseValidation) {
-                        validate()
-                    }
+                .prepare(clientOptions, params)
+        val response = clientOptions.httpClient.execute(request, requestOptions)
+        return response
+            .use { retrieveHandler.handle(it) }
+            .also {
+                if (requestOptions.responseValidation ?: clientOptions.responseValidation) {
+                    it.validate()
                 }
-        }
+            }
     }
 
     private val listHandler: Handler<BetaModelListPage.Response> =
@@ -76,20 +73,16 @@ internal constructor(
                 .method(HttpMethod.GET)
                 .addPathSegments("v1", "models")
                 .putQueryParam("beta", "true")
-                .putAllQueryParams(clientOptions.queryParams)
-                .replaceAllQueryParams(params.getQueryParams())
-                .putAllHeaders(clientOptions.headers)
-                .replaceAllHeaders(params.getHeaders())
                 .build()
-        return clientOptions.httpClient.execute(request, requestOptions).let { response ->
-            response
-                .use { listHandler.handle(it) }
-                .apply {
-                    if (requestOptions.responseValidation ?: clientOptions.responseValidation) {
-                        validate()
-                    }
+                .prepare(clientOptions, params)
+        val response = clientOptions.httpClient.execute(request, requestOptions)
+        return response
+            .use { listHandler.handle(it) }
+            .also {
+                if (requestOptions.responseValidation ?: clientOptions.responseValidation) {
+                    it.validate()
                 }
-                .let { BetaModelListPage.of(this, params, it) }
-        }
+            }
+            .let { BetaModelListPage.of(this, params, it) }
     }
 }
