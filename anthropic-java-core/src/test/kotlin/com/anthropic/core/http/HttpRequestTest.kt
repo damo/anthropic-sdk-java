@@ -3,9 +3,6 @@ package com.anthropic.core.http
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
-/**
- * Unit tests for the [HttpRequest] class.
- */
 internal class HttpRequestTest {
     @Test
     fun replaceAllPathSegmentsNoneWithNone() {
@@ -63,14 +60,6 @@ internal class HttpRequestTest {
         assertThat(request.pathSegments[3]).isEqualTo("s6")
     }
 
-    /**
-     * Creates a new [HttpRequest] with the given path segments.
-     *
-     * @param pathSegments The path segments to add to the new request. May be
-     *     empty if none are required.
-     *
-     * @return A new request with the given path segments.
-     */
     private fun createRequest(vararg pathSegments: String): HttpRequest {
         return HttpRequest.builder()
             .method(HttpMethod.POST) // A method is required.

@@ -1,5 +1,6 @@
 package com.anthropic.bedrock.backends
 
+import com.anthropic.core.bodyToJson
 import com.anthropic.core.http.HttpMethod
 import com.anthropic.core.http.HttpRequest
 import com.anthropic.core.json
@@ -17,25 +18,13 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials
 import software.amazon.awssdk.regions.Region
 
-/**
- * Unit tests for the [BedrockBackend] class.
- */
 internal class BedrockBackendTest {
     companion object {
-        /** An example of an access key ID. This is *not* a real ID. */
         private const val AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE"
-
-        /** An example of a secret access key. This is *not* a real key. */
         private const val AWS_SECRET_ACCESS_KEY =
             "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-
-        /** An example of an AWS region name. */
-        private const val AWS_REGION = "us-east-1"
-
-        /** An example of an AWS session token. This is *not* a real token. */
         private const val AWS_SESSION_TOKEN = "FwoGZXIvYXdzEJr..."
-
-        /** The ID of a model hosted on the Bedrock service. */
+        private const val AWS_REGION = "us-east-1"
         private const val MODEL_ID = "anthropic.claude-3-5-sonnet-20240620-v1:0"
 
         // The names of the system properties recognised by AWS when resolving
@@ -47,10 +36,6 @@ internal class BedrockBackendTest {
         private const val PROP_AWS_REGION            = "aws.region"
     }
 
-    /**
-     * Sets the system properties to a known state (all cleared) before each
-     * test to avoid side effects.
-     */
     @BeforeEach
     fun setUp() {
         clearEnv()
@@ -383,7 +368,7 @@ internal class BedrockBackendTest {
 
         // "model" should be removed from JSON body and "anthropic_version"
         // should be added.
-        val json = BedrockBackend.bodyToJson(preparedRequest.body, jsonMapper())
+        val json = bodyToJson(jsonMapper(), preparedRequest.body)
 
         assertThat(json).isNotNull()
         assertThat(json!!.get("model")).isNull()
@@ -408,7 +393,7 @@ internal class BedrockBackendTest {
 
         // "model" and "stream" should be removed from JSON body and
         // "anthropic_version" should be added.
-        val json = BedrockBackend.bodyToJson(preparedRequest.body, jsonMapper())
+        val json = bodyToJson(jsonMapper(), preparedRequest.body)
 
         assertThat(json).isNotNull()
         assertThat(json!!.get("model")).isNull()
@@ -425,7 +410,7 @@ internal class BedrockBackendTest {
             """{"model":"$MODEL_ID", "stream":false}""", "v1", "messages")
         val preparedRequest = backend.prepareRequest(request)
         val pathSegments = preparedRequest.pathSegments
-        val json = BedrockBackend.bodyToJson(preparedRequest.body, jsonMapper())
+        val json = bodyToJson(jsonMapper(), preparedRequest.body)
 
         // Check that it is the value of the "stream" property, not its mere
         // presence that causes a streaming request to be prepared. Similar
@@ -446,7 +431,7 @@ internal class BedrockBackendTest {
             """{"model":"$MODEL_ID"}""", "v1", "complete")
         val preparedRequest = backend.prepareRequest(request)
         val pathSegments = preparedRequest.pathSegments
-        val json = BedrockBackend.bodyToJson(preparedRequest.body, jsonMapper())
+        val json = bodyToJson(jsonMapper(), preparedRequest.body)
 
         // Path segments: "/model/<MODEL_ID>/invoke"
         assertThat(pathSegments.size).isEqualTo(3)
@@ -471,7 +456,7 @@ internal class BedrockBackendTest {
             """{"model":"$MODEL_ID", "stream":true}""", "v1", "complete")
         val preparedRequest = backend.prepareRequest(request)
         val pathSegments = preparedRequest.pathSegments
-        val json = BedrockBackend.bodyToJson(preparedRequest.body, jsonMapper())
+        val json = bodyToJson(jsonMapper(), preparedRequest.body)
 
         // Path segments: "/model/<MODEL_ID>/invoke-with-response-stream"
         assertThat(pathSegments.size).isEqualTo(3)
@@ -495,7 +480,7 @@ internal class BedrockBackendTest {
         val request = createRequest(
             """{"model":"$MODEL_ID"}""", "v1", "messages")
         val preparedRequest = backend.prepareRequest(request)
-        val json = BedrockBackend.bodyToJson(preparedRequest.body, jsonMapper())
+        val json = bodyToJson(jsonMapper(), preparedRequest.body)
 
         // Only check that there is no header and no property in the body
         // specifying a beta version. The rest is tested elsewhere.
@@ -518,7 +503,7 @@ internal class BedrockBackendTest {
             .putHeader("anthropic-beta", "b1")
             .build()
         val preparedRequest = backend.prepareRequest(request)
-        val json = BedrockBackend.bodyToJson(preparedRequest.body, jsonMapper())
+        val json = bodyToJson(jsonMapper(), preparedRequest.body)
 
         assertThat(json).isNotNull()
 
@@ -544,7 +529,7 @@ internal class BedrockBackendTest {
             .putHeader("anthropic-beta", "b2") // Deliberate duplicate
             .build()
         val preparedRequest = backend.prepareRequest(request)
-        val json = BedrockBackend.bodyToJson(preparedRequest.body, jsonMapper())
+        val json = bodyToJson(jsonMapper(), preparedRequest.body)
 
         assertThat(json).isNotNull()
 
@@ -575,7 +560,7 @@ internal class BedrockBackendTest {
             .putHeader("anthropic-beta", "b5")
             .build()
         val preparedRequest = backend.prepareRequest(request)
-        val json = BedrockBackend.bodyToJson(preparedRequest.body, jsonMapper())
+        val json = bodyToJson(jsonMapper(), preparedRequest.body)
 
         assertThat(json).isNotNull()
 
@@ -737,8 +722,9 @@ internal class BedrockBackendTest {
      * For the simulation, system properties are set. This tests that the AWS
      * credentials provider is being used, as it will resolve credentials from
      * system properties as part of its chain of potential sources. System
-     * properties are also easier to set and get when testing than environment
-     * variables.
+     * properties are the first source to be resolved by the default provider
+     * chain. System properties are also easier to set and get when testing than
+     * environment variables.
      *
      * This method sets all the properties to non-empty values. To set
      * properties more selectively, see the other [initEnv] method.
@@ -753,19 +739,10 @@ internal class BedrockBackendTest {
     }
 
     /**
-     * Initializes the environment to simulate the presence of AWS
+     * Initializes the environment selectively to simulate the presence of AWS
      * authentication and region values that can be resolved into the
      * credentials of the backend. See [initEnv] for more details, or to set
      * all properties together.
-     *
-     * @param isSetAccessKeyID `true` to set the access key ID property, or
-     *     `false` to clear that property.
-     * @param isSetSecretAccessKey `true` to set the secret access key property,
-     *     or `false` to clear that property.
-     * @param isSetSessionToken `true` to set the session token property, or
-     *     `false` to clear that property.
-     * @param isSetRegion `true` to set the region property, or `false` to clear
-     *     that property.
      */
     private fun initEnv(isSetAccessKeyID: Boolean, isSetSecretAccessKey:Boolean,
                         isSetSessionToken: Boolean, isSetRegion: Boolean) {
@@ -806,23 +783,14 @@ internal class BedrockBackendTest {
         )
     }
 
-    /**
-     * Parses the given JSON data (in string form) to a JSON object model.
-     *
-     * @param jsonData The JSON data in string form.
-     */
     private fun parseJson(jsonData: String): ObjectNode =
         jsonMapper().readValue(jsonData, ObjectNode::class.java)
 
     /**
-     * Creates a new [HttpRequest] with the given path segments and JSON body.
-     *
      * @param jsonData The JSON data to add to the body of request. If `null`
      *     a body will not be added to the request. If not `null`, the data must
      *     represent a valid JSON model, even a minimal `{}`, or an error will
      *     occur.
-     * @param pathSegments The path segments to add to the new request. May be
-     *     empty if none are required.
      */
     private fun createRequest(
             jsonData: String?, vararg pathSegments: String): HttpRequest =

@@ -32,12 +32,6 @@ import okio.BufferedSink
 class OkHttpClient private constructor(
     private val okHttpClient: okhttp3.OkHttpClient,
     private val baseUrl: HttpUrl,
-
-    /**
-     * [Backend] (optional) that may be required to authenticate and authorize
-     * requests to an Anthropic service or adapt requests to and responses from
-     * different backends to the default Anthropic API.
-     */
     private val backend: Backend?)
     : HttpClient {
 
@@ -95,17 +89,6 @@ class OkHttpClient private constructor(
         okHttpClient.cache?.close()
     }
 
-    /**
-     * Prepares a request for execution. The request is prepared for the
-     * configured service backend (if any), its URL if fully resolved, and it
-     * is authorized by adding headers or signatures appropriate to the backend.
-     *
-     * @param request The "unprepared" request that should be prepared. This
-     *     will not be modified.
-     *
-     * @return A new "prepared" request instance, or the given request instance
-     *     if no preparation was required.
-     */
     private fun prepareRequest(request: HttpRequest): HttpRequest {
         val preparedRequest = backend?.prepareRequest(request) ?: request
         val resolvedRequest = preparedRequest.resolveUrl()
@@ -182,13 +165,6 @@ class OkHttpClient private constructor(
             else -> false
         }
 
-    /**
-     * Creates a new [HttpRequest] with the [HttpRequest.url] property resolved
-     * from the base URL, credentials, path segments and query parameters. If
-     * the URL is already set, it is not changed.
-     *
-     * @return The new request instance with the URL property set.
-     */
     private fun HttpRequest.resolveUrl(): HttpRequest {
         return toBuilder().url(toUrl()).build()
     }
@@ -254,11 +230,6 @@ class OkHttpClient private constructor(
         private var baseUrl: HttpUrl? = null
         private var timeout: Timeout = Timeout.default()
         private var proxy: Proxy? = null
-
-        /**
-         * [Backend] that may be required to authenticate and authorize
-         * requests to an Anthropic service running on a different backend.
-         */
         private var backend: Backend? = null
 
         fun baseUrl(baseUrl: String) = apply { this.baseUrl = baseUrl.toHttpUrl() }
@@ -269,15 +240,6 @@ class OkHttpClient private constructor(
 
         fun proxy(proxy: Proxy?) = apply { this.proxy = proxy }
 
-        /**
-         * Sets the backend to be used to manage credentials, prepare requests
-         * and handle responses to an Anthropic model running on an alternative
-         * backend service. Implementations of the [Backend] interface can
-         * define the required behavior for a specific backend service.
-         *
-         * @param backend The backend to be used. If connecting to the default
-         *     Anthropic backend service, a custom backend is not required.
-         */
         fun backend(backend: Backend?) = apply { this.backend = backend }
 
         fun build(): OkHttpClient =

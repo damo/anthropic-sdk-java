@@ -1,5 +1,6 @@
 package com.anthropic.vertex.backends
 
+import com.anthropic.core.bodyToJson
 import com.anthropic.core.http.HttpMethod
 import com.anthropic.core.http.HttpRequest
 import com.anthropic.core.json
@@ -13,27 +14,15 @@ import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 
-/**
- * Unit tests for the [VertexBackend] class. At present, the operation of the
- * [VertexBackend.fromEnv] method has yet to be tested. Testing of that method
- * relies on manually-run example applications.
- */
 internal class VertexBackendTest {
     companion object {
-        /** An example of an OAuth2 access token. This is *not* a real token. */
+        // This is *not* a real token.
         private const val ACCESS_TOKEN =
             "bXad1rxDyYfoRm8adi66C6dgX6x8eIp2Yx9y2VK3"
-
-        /** An example of a Google Cloud region name. */
-        private const val GC_REGION = "us-central1"
-
-        /** An example of a Google Cloud project ID. This is *not* a real ID */
+        // This is *not* a real ID.
         private const val GC_PROJECT = "vertex-project-12345-b6"
-
-        /** The ID of a model hosted on the Vertex service. */
         private const val MODEL_ID = "claude-3-sonnet"
-
-        /** The Anthropic version added to the JSON body of requests. */
+        private const val GC_REGION = "us-central1"
         private const val ANTHROPIC_VERSION = "vertex-2023-10-16"
     }
 
@@ -224,7 +213,7 @@ internal class VertexBackendTest {
         // The implementation (like the Python SDK) does not remove the "model"
         // or "stream" properties from the JSON body if "count_tokens" is
         // requested, but it still adds the "anthropic_version" property.
-        val json = VertexBackend.bodyToJson(preparedRequest.body, jsonMapper())
+        val json = bodyToJson(jsonMapper(), preparedRequest.body)
 
         assertThat(json).isNotNull()
         assertThat(json!!.get("model").asText()).isEqualTo(MODEL_ID)
@@ -240,7 +229,7 @@ internal class VertexBackendTest {
             """{"model":"$MODEL_ID"}""", "v1", "messages")
         val preparedRequest = backend.prepareRequest(request)
         val pathSegments = preparedRequest.pathSegments
-        val json = VertexBackend.bodyToJson(preparedRequest.body, jsonMapper())
+        val json = bodyToJson(jsonMapper(), preparedRequest.body)
 
         assertThat(pathSegments.size).isEqualTo(9)
         assertThat(pathSegments[0]).isEqualTo("v1")
@@ -269,7 +258,7 @@ internal class VertexBackendTest {
             """{"model":"$MODEL_ID", "stream":true}""", "v1", "messages")
         val preparedRequest = backend.prepareRequest(request)
         val pathSegments = preparedRequest.pathSegments
-        val json = VertexBackend.bodyToJson(preparedRequest.body, jsonMapper())
+        val json = bodyToJson(jsonMapper(), preparedRequest.body)
 
         assertThat(pathSegments.size).isEqualTo(9)
         assertThat(pathSegments[0]).isEqualTo("v1")
@@ -298,7 +287,7 @@ internal class VertexBackendTest {
             """{"model":"$MODEL_ID","stream":false}""", "v1", "messages")
         val preparedRequest = backend.prepareRequest(request)
         val pathSegments = preparedRequest.pathSegments
-        val json = VertexBackend.bodyToJson(preparedRequest.body, jsonMapper())
+        val json = bodyToJson(jsonMapper(), preparedRequest.body)
 
         assertThat(pathSegments.size).isEqualTo(9)
         assertThat(pathSegments[0]).isEqualTo("v1")
@@ -327,7 +316,7 @@ internal class VertexBackendTest {
             """{"model":"$MODEL_ID"}""", "v1", "complete")
         val preparedRequest = backend.prepareRequest(request)
         val pathSegments = preparedRequest.pathSegments
-        val json = VertexBackend.bodyToJson(preparedRequest.body, jsonMapper())
+        val json = bodyToJson(jsonMapper(), preparedRequest.body)
 
         assertThat(pathSegments.size).isEqualTo(9)
         assertThat(pathSegments[0]).isEqualTo("v1")
@@ -356,7 +345,7 @@ internal class VertexBackendTest {
             """{"model":"$MODEL_ID","stream":true}""", "v1", "complete")
         val preparedRequest = backend.prepareRequest(request)
         val pathSegments = preparedRequest.pathSegments
-        val json = VertexBackend.bodyToJson(preparedRequest.body, jsonMapper())
+        val json = bodyToJson(jsonMapper(), preparedRequest.body)
 
         assertThat(pathSegments.size).isEqualTo(9)
         assertThat(pathSegments[0]).isEqualTo("v1")
@@ -461,23 +450,14 @@ internal class VertexBackendTest {
             .isEqualTo("Bearer $ACCESS_TOKEN")
     }
 
-    /**
-     * Parses the given JSON data (in string form) to a JSON object model.
-     *
-     * @param jsonData The JSON data in string form.
-     */
     private fun parseJson(jsonData: String): ObjectNode =
         jsonMapper().readValue(jsonData, ObjectNode::class.java)
 
     /**
-     * Creates a new [HttpRequest] with the given path segments and JSON body.
-     *
      * @param jsonData The JSON data to add to the body of request. If `null`
      *     a body will not be added to the request. If not `null`, the data must
      *     represent a valid JSON model, even a minimal `{}`, or an error will
      *     occur.
-     * @param pathSegments The path segments to add to the new request. May be
-     *     empty if none are required.
      */
     private fun createRequest(
         jsonData: String?, vararg pathSegments: String): HttpRequest =
@@ -487,22 +467,9 @@ internal class VertexBackendTest {
             .apply { jsonData?.let { body(json(jsonMapper(), parseJson(it))) } }
             .build()
 
-    /**
-     * Creates a new Vertex backend test fixture with fake credentials, a region
-     * and a project ID.
-     */
     private fun createBackend(): VertexBackend =
         createBackend(createCredentials(), GC_REGION, GC_PROJECT)
 
-    /**
-     * Creates a new Vertex backend test fixture with the given credentials,
-     * region and project ID.
-     *
-     * @param googleCredentials The credentials to set on the test fixture. Do
-     *     not use any real authorization or access tokens.
-     * @param region The Google Cloud region for the backend.
-     * @param project The Google Cloud project ID. Do not use a real ID.
-     */
     private fun createBackend(
         googleCredentials: GoogleCredentials, region: String, project: String)
             : VertexBackend = VertexBackend.builder()
@@ -511,11 +478,6 @@ internal class VertexBackendTest {
         .project(project)
         .build()
 
-    /**
-     * Creates fake Google credentials for use in test fixtures. The access
-     * token will have the value of [ACCESS_TOKEN]. No quota project ID or other
-     * property will be set.
-     */
     private fun createCredentials(): GoogleCredentials =
         GoogleCredentials.create(
             AccessToken.newBuilder().setTokenValue(ACCESS_TOKEN).build())

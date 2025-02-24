@@ -32,12 +32,6 @@ class AnthropicOkHttpClientAsync private constructor() {
         private var baseUrl: String = ClientOptions.PRODUCTION_URL
         private var timeout: Timeout = Timeout.default()
         private var proxy: Proxy? = null
-
-        /**
-         * The optional backend that may be used for authentication and
-         * authorization, request processing and response handling when using
-         * a backend service other than the default Anthropic service.
-         */
         private var backend: Backend? = null
 
         fun baseUrl(baseUrl: String) = apply {
@@ -153,27 +147,8 @@ class AnthropicOkHttpClientAsync private constructor() {
 
         fun authToken(authToken: Optional<String>) = authToken(authToken.orElse(null))
 
-        /**
-         * Sets the backend to be used for the backend service hosting Anthropic
-         * AI models. Implementations of the [Backend] interface can define the
-         * required credentials, prepare requests and handle responses for
-         * different backend services.
-         *
-         * @param backend The backend to be used. If connecting to the default
-         *     Anthropic backend service, a custom backend is not required.
-         */
         fun backend(backend: Backend?) = apply { this.backend = backend }
 
-        /**
-         * Sets the optional backend to be used for the backend service hosting
-         * Anthropic AI models. Implementations of the [Backend] interface can
-         * define the required credentials, prepare requests and handle
-         * responses for different backend services.
-         *
-         * @param backend The optional backend to be used. If connecting to the
-         *     default Anthropic backend service, a custom backend is not
-         *     required.
-         */
         fun backend(backend: Optional<Backend>) = backend(backend.orElse(null))
 
         fun fromEnv() = apply { clientOptions.fromEnv() }

@@ -4,27 +4,26 @@ package com.anthropic.core
 
 import com.anthropic.core.http.HttpRequestBody
 import com.anthropic.errors.AnthropicException
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.json.JsonMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder
 
 /**
  * Creates a new [HttpRequestBody] containing the given value serialized to a
- * JSON string.
+ * JSON string. The content type will be set to `application/json` and will use
+ * UTF-8 encoding.
  *
  * The use of this method is _not supported_ as part of the public API of the
  * Anthropic SDK. This method may change or be removed without any prior notice.
  *
- * @param jsonMapper The mapper to use to serialize the JSON data.
  * @param value The data to form the request body. This may be any object; it is
  *     not limited to JSON objects or nodes.
- *
- * @return A new request body holding the JSON data. The content type will be
- *     set to `application/json` and will use UTF-8 encoding.
  */
 @JvmSynthetic
-public inline fun <reified T> json(
+inline fun <reified T> json(
     jsonMapper: JsonMapper,
     value: T,
 ): HttpRequestBody {
@@ -58,6 +57,27 @@ public inline fun <reified T> json(
 
         override fun close() {}
     }
+}
+
+/**
+ * Creates a JSON [ObjectNode] representing the JSON data parsed from a
+ * [HttpRequestBody].
+ *
+ * The use of this method is _not supported_ as part of the public API of the
+ * Anthropic SDK. This method may change or be removed without any prior notice.
+ */
+@JvmSynthetic
+fun bodyToJson(
+    jsonMapper: ObjectMapper, body: HttpRequestBody?
+): ObjectNode? {
+    val jsonData = ByteArrayOutputStream()
+
+    body?.writeTo(jsonData)
+    if (jsonData.size() > 0) {
+        return jsonMapper.readValue(
+            jsonData.toByteArray(), ObjectNode::class.java)
+    }
+    return null
 }
 
 @JvmSynthetic
