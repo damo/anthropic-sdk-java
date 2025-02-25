@@ -16,10 +16,10 @@ import com.anthropic.core.http.HttpResponse
  */
 interface Backend {
     /**
-     * Gets the backend service's base URL (service endpoint) identifying the
-     * service that will be accessed by this backend.
+     * Gets the backend's service endpoint (URL) identifying the service that
+     * will be accessed by this backend.
      */
-    fun baseUrl(): String
+    fun serviceEndpoint(): String
 
     /**
      * Prepares the request for use by the backend service. Changes may be made

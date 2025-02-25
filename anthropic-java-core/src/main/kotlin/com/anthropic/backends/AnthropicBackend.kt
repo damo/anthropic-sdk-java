@@ -1,7 +1,6 @@
 package com.anthropic.backends
 
 import com.anthropic.backends.AnthropicBackend.Builder
-import com.anthropic.core.ClientOptions
 import com.anthropic.core.http.HttpRequest
 import com.anthropic.errors.AnthropicException
 import com.anthropic.errors.AnthropicInvalidDataException
@@ -27,6 +26,7 @@ class AnthropicBackend private constructor(
 ) : Backend {
 
     companion object {
+        private const val PRODUCTION_URL = "https://api.anthropic.com"
         private const val ANTHROPIC_VERSION = "2023-06-01"
         private const val ENV_API_KEY = "ANTHROPIC_API_KEY"
         private const val ENV_AUTH_TOKEN = "ANTHROPIC_AUTH_TOKEN"
@@ -39,7 +39,7 @@ class AnthropicBackend private constructor(
         @JvmStatic fun fromEnv(): AnthropicBackend = builder().fromEnv().build()
     }
 
-    override fun baseUrl(): String = baseUrl
+    override fun serviceEndpoint(): String = baseUrl
 
     override fun prepareRequest(request: HttpRequest): HttpRequest {
         if (request.headers.names().contains(HEADER_VERSION)) {
@@ -56,7 +56,7 @@ class AnthropicBackend private constructor(
         if (request.headers.names().contains(HEADER_API_KEY )
                 || request.headers.names().contains(HEADER_AUTHORIZATION)) {
             throw AnthropicInvalidDataException(
-                "Request is already authorized.")
+                "Request already authorized for Anthropic.")
         }
 
         return request.toBuilder()
@@ -82,7 +82,7 @@ class AnthropicBackend private constructor(
     class Builder internal constructor() {
         private var apiKey: String? = null
         private var authToken: String? = null
-        private var baseUrl: String = ClientOptions.PRODUCTION_URL
+        private var baseUrl: String = PRODUCTION_URL
 
         fun fromEnv() = apply {
             apiKey = System.getenv(ENV_API_KEY)
@@ -96,9 +96,9 @@ class AnthropicBackend private constructor(
             }
         }
 
-        fun apiKey(apiKey: String) = apply { this.apiKey = apiKey }
+        fun apiKey(apiKey: String?) = apply { this.apiKey = apiKey }
 
-        fun authToken(authToken: String) = apply { this.authToken = authToken }
+        fun authToken(authToken: String?) = apply { this.authToken = authToken }
 
         fun baseUrl(baseUrl: String) = apply { this.baseUrl = baseUrl }
 

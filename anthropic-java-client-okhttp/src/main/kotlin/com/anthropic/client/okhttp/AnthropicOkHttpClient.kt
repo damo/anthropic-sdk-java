@@ -2,6 +2,7 @@
 
 package com.anthropic.client.okhttp
 
+import com.anthropic.backends.AnthropicBackend
 import com.anthropic.backends.Backend
 import com.anthropic.client.AnthropicClient
 import com.anthropic.client.AnthropicClientImpl
@@ -29,14 +30,13 @@ class AnthropicOkHttpClient private constructor() {
     class Builder internal constructor() {
 
         private var clientOptions: ClientOptions.Builder = ClientOptions.builder()
-        private var baseUrl: String = ClientOptions.PRODUCTION_URL
         private var timeout: Timeout = Timeout.default()
         private var proxy: Proxy? = null
         private var backend: Backend? = null
+        private var defaultBackendBuilder: AnthropicBackend.Builder? = null
 
         fun baseUrl(baseUrl: String) = apply {
-            clientOptions.baseUrl(baseUrl)
-            this.baseUrl = baseUrl
+            ensureDefaultBackendBuilder("baseUrl").baseUrl(baseUrl)
         }
 
         fun jsonMapper(jsonMapper: JsonMapper) = apply { clientOptions.jsonMapper(jsonMapper) }
@@ -139,29 +139,54 @@ class AnthropicOkHttpClient private constructor() {
             clientOptions.responseValidation(responseValidation)
         }
 
-        fun apiKey(apiKey: String?) = apply { clientOptions.apiKey(apiKey) }
+        fun apiKey(apiKey: String?) = apply {
+            ensureDefaultBackendBuilder("apiKey").apiKey(apiKey)
+        }
 
         fun apiKey(apiKey: Optional<String>) = apiKey(apiKey.orElse(null))
 
-        fun authToken(authToken: String?) = apply { clientOptions.authToken(authToken) }
+        fun authToken(authToken: String?) = apply {
+            ensureDefaultBackendBuilder("authToken").authToken(authToken)
+        }
 
         fun authToken(authToken: Optional<String>) = authToken(authToken.orElse(null))
 
-        fun backend(backend: Backend?) = apply { this.backend = backend }
+        fun backend(backend: Backend) = apply {
+            if (defaultBackendBuilder != null) {
+                throw IllegalStateException(
+                    "Default backend already set. Cannot set another backend.")
+            }
+            this.backend = backend
+        }
 
-        fun backend(backend: Optional<Backend>) = backend(backend.orElse(null))
+        fun fromEnv() = apply {
+            ensureDefaultBackendBuilder("fromEnv").fromEnv()
+        }
 
-        fun fromEnv() = apply { clientOptions.fromEnv() }
+        private fun ensureDefaultBackendBuilder(fromFunction: String)
+                : AnthropicBackend.Builder {
+            if (backend != null) {
+                throw IllegalStateException(
+                    "Backend already set. Cannot now call '$fromFunction'.")
+            }
+
+            return defaultBackendBuilder ?: AnthropicBackend.builder().also {
+                defaultBackendBuilder = it
+            }
+        }
+
+        private fun ensureBackend(): Backend =
+            defaultBackendBuilder?.build() ?: backend
+            ?: throw IllegalStateException("No backend set.")
 
         fun build(): AnthropicClient =
             AnthropicClientImpl(
                 clientOptions
                     .httpClient(
                         OkHttpClient.builder()
-                            .baseUrl(baseUrl)
                             .timeout(timeout)
                             .proxy(proxy)
-                            .backend(backend)
+                            .backend(ensureBackend())
                             .build()
                     )
                     .build()

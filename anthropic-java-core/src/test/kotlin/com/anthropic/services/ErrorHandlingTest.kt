@@ -59,7 +59,6 @@ class ErrorHandlingTest {
             AnthropicOkHttpClient.builder()
                 .baseUrl(wmRuntimeInfo.getHttpBaseUrl())
                 .apiKey("my-anthropic-api-key")
-                .authToken("my-auth-token")
                 .build()
     }
 
