@@ -2,8 +2,6 @@ package com.anthropic.backends
 
 import com.anthropic.backends.AnthropicBackend.Builder
 import com.anthropic.core.http.HttpRequest
-import com.anthropic.errors.AnthropicException
-import com.anthropic.errors.AnthropicInvalidDataException
 
 /**
  * The Anthropic backend that manages the API key or authorization token
@@ -42,9 +40,8 @@ class AnthropicBackend private constructor(
     override fun serviceEndpoint(): String = baseUrl
 
     override fun prepareRequest(request: HttpRequest): HttpRequest {
-        if (request.headers.names().contains(HEADER_VERSION)) {
-            throw AnthropicInvalidDataException(
-                "Request already prepared for Anthropic.")
+        require(!request.headers.names().contains(HEADER_VERSION)) {
+            "Request already prepared for Anthropic."
         }
 
         return request.toBuilder()
@@ -53,10 +50,9 @@ class AnthropicBackend private constructor(
     }
 
     override fun authorizeRequest(request: HttpRequest): HttpRequest {
-        if (request.headers.names().contains(HEADER_API_KEY )
-                || request.headers.names().contains(HEADER_AUTHORIZATION)) {
-            throw AnthropicInvalidDataException(
-                "Request already authorized for Anthropic.")
+        require(!request.headers.names().contains(HEADER_API_KEY )
+                && !request.headers.names().contains(HEADER_AUTHORIZATION)) {
+            "Request already authorized for Anthropic."
         }
 
         return request.toBuilder()
@@ -89,7 +85,7 @@ class AnthropicBackend private constructor(
             authToken = System.getenv(ENV_AUTH_TOKEN)
 
             if (apiKey == null && authToken == null) {
-                throw AnthropicException(
+                throw IllegalStateException(
                     "No API key set in $ENV_API_KEY environment variable and " +
                             "no authorization token set in $ENV_AUTH_TOKEN " +
                             "environment variable. Please set exactly one.")

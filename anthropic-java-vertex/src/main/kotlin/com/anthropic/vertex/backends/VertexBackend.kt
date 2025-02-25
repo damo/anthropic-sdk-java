@@ -51,7 +51,8 @@ class VertexBackend private constructor(
     override fun prepareRequest(request: HttpRequest): HttpRequest {
         val pathSegments = request.pathSegments
 
-        // Check that the request is valid has not been prepared already.
+        // Check that the request is valid. Unlike for Bedrock, Vertex *will*
+        // still have a first "v1" path segment.
         if (pathSegments.isEmpty() || pathSegments[0] != "v1") {
             throw AnthropicInvalidDataException(
                 "Expected first 'v1' path segment.")
@@ -66,7 +67,7 @@ class VertexBackend private constructor(
 
         when (pathSegments[1]) {
             "projects" -> {
-                throw AnthropicInvalidDataException(
+                throw IllegalArgumentException(
                     "Request already prepared for Vertex.")
             }
             "messages" -> {
@@ -90,7 +91,7 @@ class VertexBackend private constructor(
         if (jsonBody != null) {
             jsonBody.put("anthropic_version", ANTHROPIC_VERSION)
         } else {
-            throw AnthropicInvalidDataException("Request has no body")
+            throw AnthropicInvalidDataException("Request has no body.")
         }
 
         val endpoint: String
@@ -124,9 +125,8 @@ class VertexBackend private constructor(
     override fun authorizeRequest(request: HttpRequest): HttpRequest {
         googleCredentials.refreshIfExpired()
 
-        if (request.headers.names().contains(HEADER_AUTHORIZATION)) {
-            throw AnthropicInvalidDataException(
-                "Request is already authorized.")
+        require(!request.headers.names().contains(HEADER_AUTHORIZATION)) {
+            "Request already authorized for Vertex."
         }
 
         return request.toBuilder()
@@ -160,16 +160,16 @@ class VertexBackend private constructor(
             try {
                 googleCredentials = GoogleCredentials.getApplicationDefault()
             } catch (e: Exception) {
-                throw AnthropicException(
+                throw IllegalStateException(
                     "Google OAuth2 credentials could not be resolved.", e)
             }
 
             region = System.getenv(ENV_REGION)
-                ?: throw AnthropicException(
+                ?: throw IllegalStateException(
                     "No region set in $ENV_REGION environment variable.")
 
             project = System.getenv(ENV_PROJECT)
-                ?: throw AnthropicException(
+                ?: throw IllegalStateException(
                     "No project set in $ENV_PROJECT environment variable.")
         }
 

@@ -184,8 +184,8 @@ internal class VertexBackendTest {
         val preparedRequest = backend.prepareRequest(request)
 
         assertThatThrownBy { backend.prepareRequest(preparedRequest) }
-            .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
-            .hasMessageStartingWith("Request already prepared")
+            .isExactlyInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageStartingWith("Request already prepared for Vertex")
     }
 
     @Test
@@ -381,8 +381,8 @@ internal class VertexBackendTest {
         val authorizedRequest = backend.authorizeRequest(request)
 
         assertThatThrownBy { backend.authorizeRequest(authorizedRequest) }
-            .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
-            .hasMessage("Request is already authorized.")
+            .isExactlyInstanceOf(IllegalArgumentException::class.java)
+            .hasMessage("Request already authorized for Vertex.")
     }
 
     @Test

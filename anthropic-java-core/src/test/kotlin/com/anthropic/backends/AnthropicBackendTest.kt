@@ -52,7 +52,7 @@ class AnthropicBackendTest {
         val preparedRequest = backend.prepareRequest(createRequest())
 
         assertThatThrownBy { backend.prepareRequest(preparedRequest) }
-            .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
+            .isExactlyInstanceOf(IllegalArgumentException::class.java)
             .hasMessageStartingWith("Request already prepared")
     }
 
@@ -102,7 +102,7 @@ class AnthropicBackendTest {
         val authorizedRequest = backend.authorizeRequest(createRequest())
 
         assertThatThrownBy { backend.authorizeRequest(authorizedRequest) }
-            .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
+            .isExactlyInstanceOf(IllegalArgumentException::class.java)
             .hasMessageStartingWith("Request already authorized")
     }
 
@@ -112,7 +112,7 @@ class AnthropicBackendTest {
         val authorizedRequest = backend.authorizeRequest(createRequest())
 
         assertThatThrownBy { backend.authorizeRequest(authorizedRequest) }
-            .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
+            .isExactlyInstanceOf(IllegalArgumentException::class.java)
             .hasMessageStartingWith("Request already authorized")
     }
 

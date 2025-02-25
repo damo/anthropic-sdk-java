@@ -46,8 +46,6 @@ public final class VertexMessagesExample {
                 .addUserMessage("Tell me a story about building the best SDK!")
                 .build();
 
-        System.out.println(client.messages().create(createParams));
-
         client.messages().create(createParams).content().stream()
                 .flatMap(contentBlock -> contentBlock.text().stream())
                 .forEach(textBlock -> System.out.println(textBlock.text()));

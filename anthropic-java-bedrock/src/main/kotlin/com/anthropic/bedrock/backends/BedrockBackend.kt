@@ -113,8 +113,16 @@ class BedrockBackend private constructor(
     override fun prepareRequest(request: HttpRequest): HttpRequest {
         val pathSegments = request.pathSegments
 
-        // Check that the request is valid has not been prepared already.
-        if (pathSegments.isEmpty() || pathSegments[0] != "v1") {
+        if (pathSegments.isEmpty()) {
+            throw AnthropicInvalidDataException(
+                "Request missing all path segments.")
+        }
+
+        require(pathSegments[0] != "model") {
+            "Request already prepared for Bedrock."
+        }
+
+        if (pathSegments[0] != "v1") {
             throw AnthropicInvalidDataException(
                 "Expected first 'v1' path segment.")
         }
@@ -171,9 +179,8 @@ class BedrockBackend private constructor(
     }
 
     override fun authorizeRequest(request: HttpRequest): HttpRequest {
-        if (request.headers.names().contains("Authorization")) {
-            throw AnthropicInvalidDataException(
-                "Request is already authorized.")
+        require(!request.headers.names().contains("Authorization")) {
+            "Request already authorized for Bedrock."
         }
 
         val awsSignRequest = SdkHttpRequest.builder()
@@ -335,13 +342,13 @@ class BedrockBackend private constructor(
                 awsCredentials =
                     DefaultCredentialsProvider.create().resolveCredentials()
             } catch (e: Exception) {
-                throw AnthropicException(
+                throw IllegalStateException(
                     "No AWS access key ID or AWS secret access key found.", e)
             }
             try {
                 region = DefaultAwsRegionProviderChain.builder().build().region
             } catch (e: Exception) {
-                throw AnthropicException("No AWS region found.", e)
+                throw IllegalStateException("No AWS region found.", e)
             }
         }
 

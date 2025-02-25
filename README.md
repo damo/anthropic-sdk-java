@@ -352,11 +352,33 @@ while (page != null) {
 ## Amazon Bedrock
 
 This SDK also provides support for the
-[Anthropic Bedrock API](https://aws.amazon.com/bedrock/claude/) if you add the
-`anthropic-java-bedrock` library dependency.
+[Anthropic Bedrock API](https://aws.amazon.com/bedrock/claude/). This support
+requires the `anthropic-java-bedrock` library dependency.
+
+<!-- x-release-please-start-version -->
+
+### Gradle
+
+```kotlin
+implementation("com.anthropic:anthropic-java-bedrock:0.3.0")
+```
+
+### Maven
+
+```xml
+<dependency>
+    <groupId>com.anthropic</groupId>
+    <artifactId>anthropic-java-bedrock</artifactId>
+    <version>0.3.0</version>
+</dependency>
+```
+
+<!-- x-release-please-end -->
+
+### Usage
 
 To use Anthropic on Bedrock, create the Anthropic client with the 
-`BedrockBackend`. The use of the rest of the API is then the same.
+`BedrockBackend`. Usage of the API is otherwise the same.
 
 ```java
 import com.anthropic.bedrock.backends.BedrockBackend;
@@ -393,7 +415,7 @@ AwsCredentials awsCredentials = AwsBasicCredentials.create(
         System.getenv("AWS_ACCESS_KEY_ID"),
         System.getenv("AWS_SECRET_ACCESS_KEY"));
 
-AnthropicClientAsync client = AnthropicOkHttpClientAsync.builder()
+AnthropicClient client = AnthropicOkHttpClient.builder()
         .backend(BedrockBackend.builder()
                 .awsCredentials(awsCredentials)
                 .region(Region.US_EAST_1)
@@ -413,11 +435,33 @@ Currently, the Bedrock backend does _not_ support the following:
 ## Google Cloud Vertex AI
 
 This SDK also provides support for Anthropic models on the 
-[Google Cloud Vertex AI](https://cloud.google.com/vertex-ai?hl=en) platform if
-you add the `anthropic-java-vertex` library dependency.
+[Google Cloud Vertex AI](https://cloud.google.com/vertex-ai?hl=en) platform.
+This support requires the `anthropic-java-vertex` library dependency.
+
+<!-- x-release-please-start-version -->
+
+### Gradle
+
+```kotlin
+implementation("com.anthropic:anthropic-java-vertex:0.3.0")
+```
+
+### Maven
+
+```xml
+<dependency>
+    <groupId>com.anthropic</groupId>
+    <artifactId>anthropic-java-vertex</artifactId>
+    <version>0.3.0</version>
+</dependency>
+```
+
+<!-- x-release-please-end -->
+
+### Usage
 
 To use Anthropic on Vertex AI, create the Anthropic client with the
-`VertexBackend`. The use of the rest of the API is then the same.
+`VertexBackend`. Usage of the API is otherwise the same.
 
 ```java
 import com.anthropic.client.AnthropicClient;
@@ -432,7 +476,7 @@ AnthropicClient client = AnthropicOkHttpClient.builder()
 `VertexBackend.fromEnv()` automatically resolves the Google OAuth2 credentials 
 from your configured Google Cloud
 [Application Default Credentials](https://cloud.google.com/docs/authentication/provide-credentials-adc)
-(ADC), the Google Cloud region from the `CLOUD_ML_REGION` environment variable
+(ADC), the Google Cloud region from the `CLOUD_ML_REGION` environment variable,
 and the Google Cloud project ID from `ANTHROPIC_VERTEX_PROJECT_ID` environment 
 variable. See the Google documentation for details on how to configure your ADC.
 

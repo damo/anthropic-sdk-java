@@ -2,13 +2,8 @@ package com.anthropic.example;
 
 import com.anthropic.client.AnthropicClientAsync;
 import com.anthropic.client.okhttp.AnthropicOkHttpClientAsync;
-import com.anthropic.core.http.AsyncStreamResponse;
 import com.anthropic.models.BetaMessageCreateParams;
-import com.anthropic.models.BetaRawMessageStreamEvent;
 import com.anthropic.vertex.backends.VertexBackend;
-
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * <p>
@@ -51,24 +46,12 @@ public final class VertexBetaMessagesStreamingAsyncExample {
                 .addUserMessage("Tell me a story about building the best SDK!")
                 .build();
 
-        CompletableFuture<Void> onCompleteFuture = new CompletableFuture<>();
-
-        // TODO: Update this example once we support expose an `onCompleteFuture()` method.
-        client.beta().messages().createStreaming(createParams)
-                .subscribe(new AsyncStreamResponse.Handler<>() {
-                    @Override
-                    public void onNext(BetaRawMessageStreamEvent event) {
-                        event.contentBlockDelta().stream()
-                                .flatMap(deltaEvent -> deltaEvent.delta().betaText().stream())
-                                .forEach(textDelta -> System.out.print(textDelta.text()));
-                    }
-
-                    @Override
-                    public void onComplete(Optional<Throwable> error) {
-                        onCompleteFuture.complete(null);
-                    }
-                });
-
-        onCompleteFuture.join();
+        client.beta().messages()
+                .createStreaming(createParams)
+                .subscribe(event -> event.contentBlockDelta().stream()
+                        .flatMap(deltaEvent -> deltaEvent.delta().betaText().stream())
+                        .forEach(textDelta -> System.out.print(textDelta.text())))
+                .onCompleteFuture()
+                .join();
     }
 }

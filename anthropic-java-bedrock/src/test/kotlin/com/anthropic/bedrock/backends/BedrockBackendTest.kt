@@ -45,7 +45,7 @@ internal class BedrockBackendTest {
     fun awsCredentialsAllMissing() {
         // No system properties are set (see "setUp()").
         assertThatThrownBy { BedrockBackend.fromEnv() }
-            .isExactlyInstanceOf(AnthropicException::class.java)
+            .isExactlyInstanceOf(IllegalStateException::class.java)
     }
 
     @Test
@@ -58,7 +58,7 @@ internal class BedrockBackendTest {
         )
 
         assertThatThrownBy { BedrockBackend.fromEnv() }
-            .isExactlyInstanceOf(AnthropicException::class.java)
+            .isExactlyInstanceOf(IllegalStateException::class.java)
     }
 
     @Test
@@ -71,7 +71,7 @@ internal class BedrockBackendTest {
         )
 
         assertThatThrownBy { BedrockBackend.fromEnv() }
-            .isExactlyInstanceOf(AnthropicException::class.java)
+            .isExactlyInstanceOf(IllegalStateException::class.java)
     }
 
     @Test
@@ -102,7 +102,7 @@ internal class BedrockBackendTest {
         )
 
         assertThatThrownBy { BedrockBackend.fromEnv() }
-            .isExactlyInstanceOf(AnthropicException::class.java)
+            .isExactlyInstanceOf(IllegalStateException::class.java)
     }
 
     @Test
@@ -115,7 +115,7 @@ internal class BedrockBackendTest {
         )
 
         assertThatThrownBy { BedrockBackend.fromEnv() }
-            .isExactlyInstanceOf(AnthropicException::class.java)
+            .isExactlyInstanceOf(IllegalStateException::class.java)
     }
 
     @Test
@@ -176,7 +176,7 @@ internal class BedrockBackendTest {
         // of fall-backs in the region provider used in the class under test, or
         // some step in the chain performs some slow network operation.
         assertThatThrownBy { BedrockBackend.fromEnv() }
-            .isExactlyInstanceOf(AnthropicException::class.java)
+            .isExactlyInstanceOf(IllegalStateException::class.java)
     }
 
     @Test
@@ -278,7 +278,20 @@ internal class BedrockBackendTest {
 
         assertThatThrownBy { backend.prepareRequest(request) }
             .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
-            .hasMessageStartingWith("Expected first 'v1'")
+            .hasMessageStartingWith("Request missing all path segments")
+    }
+
+    @Test
+    fun prepareRequestAlreadyPrepared() {
+        initEnv()
+        val backend = BedrockBackend.fromEnv()
+        // Request contains "model" as first path segment, which strongly
+        // suggests it has already been through the "prepareRequest" function.
+        val request = createRequest("""{}""", "model", MODEL_ID)
+
+        assertThatThrownBy { backend.prepareRequest(request) }
+            .isExactlyInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageStartingWith("Request already prepared")
     }
 
     @Test
@@ -593,8 +606,8 @@ internal class BedrockBackendTest {
         val authorizedRequest = backend.authorizeRequest(request)
 
         assertThatThrownBy { backend.authorizeRequest(authorizedRequest) }
-            .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
-            .hasMessage("Request is already authorized.")
+            .isExactlyInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageStartingWith("Request already authorized for Bedrock")
     }
 
     @Test
