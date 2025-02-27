@@ -181,9 +181,7 @@ class AnthropicOkHttpClient private constructor() {
          * default production base URL, no API key and no auth token.
          */
         private fun ensureBackend(): Backend =
-            backend
-                ?: defaultBackendBuilder?.build()
-                ?: ensureDefaultBackendBuilder("ensureBackend").build()
+            backend ?: ensureDefaultBackendBuilder("ensureBackend").build()
 
         fun build(): AnthropicClient =
             AnthropicClientImpl(

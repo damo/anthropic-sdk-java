@@ -2,6 +2,7 @@ package com.anthropic.backends
 
 import com.anthropic.backends.AnthropicBackend.Builder
 import com.anthropic.core.http.HttpRequest
+import java.util.Optional
 
 /**
  * The Anthropic backend that manages the API key or authorization token
@@ -87,7 +88,12 @@ class AnthropicBackend private constructor(
 
         fun apiKey(apiKey: String?) = apply { this.apiKey = apiKey }
 
+        fun apiKey(apiKey: Optional<String>) = apiKey(apiKey.orElse(null))
+
         fun authToken(authToken: String?) = apply { this.authToken = authToken }
+
+        fun authToken(authToken: Optional<String>)
+                = authToken(authToken.orElse(null))
 
         fun baseUrl(baseUrl: String) = apply { this.baseUrl = baseUrl }
 

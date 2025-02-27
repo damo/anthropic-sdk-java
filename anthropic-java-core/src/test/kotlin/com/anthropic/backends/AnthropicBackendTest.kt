@@ -2,6 +2,7 @@ package com.anthropic.backends
 
 import com.anthropic.core.http.HttpMethod
 import com.anthropic.core.http.HttpRequest
+import java.util.Optional
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatNoException
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -132,6 +133,40 @@ internal class AnthropicBackendTest {
         assertThatNoException().isThrownBy { createBackend(null, null, null) }
     }
 
+    @Test
+    fun builderCredentialsFromStrings() {
+        // Check that if the "(...: String?)" setters are called, that they set
+        // their respective fields and do not get their wires crossed.
+        val backend = createBackend(API_KEY, AUTH_TOKEN, null)
+
+        assertThat(backend.apiKey).isEqualTo(API_KEY)
+        assertThat(backend.authToken).isEqualTo(AUTH_TOKEN)
+    }
+
+    @Test
+    fun builderCredentialsFromOptionals() {
+        // Check that if the "(...: Optional<String>)" setters are called, that
+        // they set their respective fields and do not get their wires crossed.
+        val backend = AnthropicBackend.builder()
+            .apiKey(Optional.ofNullable(API_KEY))
+            .authToken(Optional.ofNullable(AUTH_TOKEN))
+            .build()
+
+        assertThat(backend.apiKey).isEqualTo(API_KEY)
+        assertThat(backend.authToken).isEqualTo(AUTH_TOKEN)
+    }
+
+    @Test
+    fun builderCredentialsFromOptionalsWithNulls() {
+        val backend = AnthropicBackend.builder()
+            .apiKey(Optional.ofNullable(null))
+            .authToken(Optional.ofNullable(null))
+            .build()
+
+        assertThat(backend.apiKey).isNull()
+        assertThat(backend.authToken).isNull()
+    }
+
     private fun createBackend(): AnthropicBackend =
         createBackend(API_KEY, null, null)
 
@@ -139,14 +174,14 @@ internal class AnthropicBackendTest {
      * @param baseUrl If `null`, the default production URL is assumed.
      */
     private fun createBackend(
-            apiKey: String?, authToken: String?, baseUrl: String?)
+        apiKey: String?, authToken: String?, baseUrl: String?)
             : AnthropicBackend = AnthropicBackend.builder()
         .apiKey(apiKey)
         .authToken(authToken)
         .apply { if (baseUrl != null) { baseUrl(baseUrl) } }
         .build()
 
-    private fun createRequest(vararg pathSegments: String): HttpRequest =
+    private fun createRequest(): HttpRequest =
         HttpRequest.builder()
             .method(HttpMethod.POST) // A method is required.
             .build()

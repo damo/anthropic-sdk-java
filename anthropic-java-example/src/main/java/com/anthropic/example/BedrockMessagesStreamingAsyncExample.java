@@ -11,14 +11,20 @@ import com.anthropic.models.MessageCreateParams;
  * an Anthropic model running on the Amazon Bedrock backend.
  * </p>
  * <p>
- * To use the [BedrockBackend], the SDK module for Bedrock must be added to the
- * dependencies. See the SDK documentation for details.
+ * To use the {@link BedrockBackend}, the SDK module for Bedrock must be added
+ * to the dependencies. Many of the other examples can be adapted to create a
+ * client with the {@code BedrockBackend}. Once a client is created, the rest
+ * of the code does not need to be changed (subject to the endpoint being
+ * supported). See the SDK documentation for details on dependencies and
+ * endpoint support for Bedrock.
  * </p>
  * <p>
  * AWS credentials must be configured to access Amazon Bedrock. This example
  * resolves the required credentials from the environment. The credentials can
  * be in system properties, environment variables, AWS CLI configuration files,
  * an AWS SSO configuration, etc. See AWS documentation for details.
+ * Alternatively, the credentials and region can be set explicitly from other
+ * sources. See {@link BedrockMessagesAsyncExample} for comparison.
  * </p>
  * <p>
  * With an Anthropic model deployed on a Bedrock service, it may be sufficient

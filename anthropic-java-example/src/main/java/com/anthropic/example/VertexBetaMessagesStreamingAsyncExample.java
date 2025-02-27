@@ -1,5 +1,6 @@
 package com.anthropic.example;
 
+import com.anthropic.bedrock.backends.BedrockBackend;
 import com.anthropic.client.AnthropicClientAsync;
 import com.anthropic.client.okhttp.AnthropicOkHttpClientAsync;
 import com.anthropic.models.BetaMessageCreateParams;
@@ -11,10 +12,20 @@ import com.anthropic.vertex.backends.VertexBackend;
  * Anthropic model running on the Google Cloud Vertex AI backend.
  * </p>
  * <p>
+ * To use the {@link VertexBackend}, the SDK module for Vertex must be added
+ * to the dependencies. Many of the other examples can be adapted to create
+ * a client with the {@code VertexBackend} (subject to the endpoint being
+ * supported). Once a client is created, the rest of the code is the same. See
+ * the SDK documentation for details on dependencies and endpoint support for
+ * Vertex AI.
+ * </p>
+ * <p>
  * Google OAuth2 credentials must be configured to access Vertex AI. This
  * example resolves the application default credentials (ADC), which may be
  * configured using the Google Cloud CLI. See Google Cloud documentation for
- * details.
+ * details. Alternatively, the Google credentials, region and project can be
+ * set explicitly from other sources. See {@link VertexMessagesExample} for
+ * comparison.
  * </p>
  * <p>
  * In addition to the ADC configuration, the following environment variables are
@@ -26,11 +37,6 @@ import com.anthropic.vertex.backends.VertexBackend;
  *   <li>{@code ANTHROPIC_VERTEX_PROJECT_ID}:
  *       The ID of the Google Cloud Vertex AI project.</li>
  * </ul>
- * <p>
- * Alternatively, the Google credentials, region and project can be set manually
- * from other sources. See {@link VertexMessagesStreamingAsyncExample} for
- * comparison.
- * </p>
  */
 public final class VertexBetaMessagesStreamingAsyncExample {
     private VertexBetaMessagesStreamingAsyncExample() {}

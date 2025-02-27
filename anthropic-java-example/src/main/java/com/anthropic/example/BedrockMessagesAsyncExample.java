@@ -14,14 +14,19 @@ import software.amazon.awssdk.regions.Region;
  * Amazon Bedrock backend using an asynchronous client.
  * </p>
  * <p>
- * To use the [BedrockBackend], the SDK module for Bedrock must be added to the
- * dependencies. See the SDK documentation for details.
+ * To use the {@link BedrockBackend}, the SDK module for Bedrock must be added
+ * to the dependencies. Many of the other examples can be adapted to create a
+ * client with the {@code BedrockBackend}. Once a client is created, the rest
+ * of the code does not need to be changed (subject to the endpoint being
+ * supported). See the SDK documentation for details on dependencies and
+ * endpoint support for Bedrock.
  * </p>
  * <p>
  * AWS credentials must be configured to access Amazon Bedrock. This example
  * sets the required credentials explicitly from a combination of environment
- * variables and hard-coded values. Alternatively, these values can be resolved
- * automatically. See {@link BedrockMessagesExample} for comparison.
+ * variables and hard-coded values. Alternatively, the credentials and region
+ * can be resolved automatically from other sources. See
+ * {@link BedrockMessagesStreamingAsyncExample} for comparison.
  * </p>
  * <p>
  * To run this example, set the following environment variables which will be
