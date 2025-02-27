@@ -45,8 +45,7 @@ class VertexBackend private constructor(
         @JvmStatic fun fromEnv(): VertexBackend = builder().fromEnv().build()
    }
 
-    override fun serviceEndpoint(): String =
-        "https://$region-aiplatform.googleapis.com"
+    override fun baseUrl(): String = "https://$region-aiplatform.googleapis.com"
 
     override fun prepareRequest(request: HttpRequest): HttpRequest {
         val pathSegments = request.pathSegments

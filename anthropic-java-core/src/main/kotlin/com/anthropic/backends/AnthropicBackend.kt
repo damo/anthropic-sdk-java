@@ -8,10 +8,10 @@ import com.anthropic.core.http.HttpRequest
  * credentials and base URL required to access an Anthropic AI model on the
  * Anthropic service.
  *
- * Either the [apiKey] or the [authToken], but not both, must be set (or
- * resolved from the environment). The default value for the base URL is the
- * normal Anthropic API service endpoint, so it only needs to be set if a
- * different service endpoint is required.
+ * The [apiKey] or the [authToken] should be set (or resolved from the
+ * environment). The default value for the base URL is the normal Anthropic API
+ * service base URL, so it only needs to be set if a different base URL is
+ * required.
  *
  * The credentials can be resolved from environment variables by calling
  * [Builder.fromEnv]. Alternatively, they can be supplied directly to the
@@ -20,7 +20,7 @@ import com.anthropic.core.http.HttpRequest
 class AnthropicBackend private constructor(
     @get:JvmName("apiKey") val apiKey: String?,
     @get:JvmName("authToken") val authToken: String?,
-    @get:JvmName("baseUrl") val baseUrl: String,
+    val baseUrl: String,
 ) : Backend {
 
     companion object {
@@ -37,7 +37,7 @@ class AnthropicBackend private constructor(
         @JvmStatic fun fromEnv(): AnthropicBackend = builder().fromEnv().build()
     }
 
-    override fun serviceEndpoint(): String = baseUrl
+    override fun baseUrl(): String = baseUrl
 
     override fun prepareRequest(request: HttpRequest): HttpRequest {
         require(!request.headers.names().contains(HEADER_VERSION)) {
@@ -57,8 +57,8 @@ class AnthropicBackend private constructor(
 
         return request.toBuilder()
             .apply {
-                // Only one of these two properties will be set, so only one
-                // header will be added.
+                // It is possible for both or neither of these credentials to be
+                // set, so zero, one or two headers may be added.
                 apiKey?.let { putHeader(HEADER_API_KEY, it) }
                 authToken?.let { putHeader(HEADER_AUTHORIZATION, "Bearer $it") }
             }.build()
@@ -83,13 +83,6 @@ class AnthropicBackend private constructor(
         fun fromEnv() = apply {
             apiKey = System.getenv(ENV_API_KEY)
             authToken = System.getenv(ENV_AUTH_TOKEN)
-
-            if (apiKey == null && authToken == null) {
-                throw IllegalStateException(
-                    "No API key set in $ENV_API_KEY environment variable and " +
-                            "no authorization token set in $ENV_AUTH_TOKEN " +
-                            "environment variable. Please set exactly one.")
-            }
         }
 
         fun apiKey(apiKey: String?) = apply { this.apiKey = apiKey }
@@ -99,20 +92,6 @@ class AnthropicBackend private constructor(
         fun baseUrl(baseUrl: String) = apply { this.baseUrl = baseUrl }
 
         fun build(): AnthropicBackend {
-            // Using "IllegalStateException", as that is what is used in the
-            // "build()" functions of the other backends, where "checkRequired"
-            // is called.
-            if (apiKey == null && authToken == null) {
-                throw IllegalStateException(
-                    "Neither the API key nor the authorization token is set. " +
-                            "Please set exactly one.")
-            }
-            if (apiKey != null && authToken != null) {
-                throw IllegalStateException(
-                    "Both the API key and the authorization token are set. " +
-                            "Please set exactly one.")
-            }
-
             return AnthropicBackend(apiKey, authToken, baseUrl)
         }
     }

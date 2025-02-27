@@ -5,7 +5,7 @@ import org.assertj.core.api.Assertions.assertThatNoException
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 
-class AnthropicOkHttpClientAsyncTest {
+internal class AnthropicOkHttpClientAsyncTest {
     companion object {
         private const val BASE_URL = "https://api.example.com"
         private const val API_KEY = "test-api-key-123456789"
@@ -13,7 +13,7 @@ class AnthropicOkHttpClientAsyncTest {
     }
 
     private class TestBackend : Backend {
-        override fun serviceEndpoint(): String = BASE_URL
+        override fun baseUrl(): String = BASE_URL
         override fun close() {}
     }
 
@@ -53,17 +53,8 @@ class AnthropicOkHttpClientAsyncTest {
     }
 
     @Test
-    fun backendDefaultFromBaseUrlMissingKeyAndToken() {
-        assertThatThrownBy { createBuilder().baseUrl(BASE_URL).build() }
-            .isExactlyInstanceOf(IllegalStateException::class.java)
-            .hasMessageStartingWith("Neither the API key nor ")
-    }
-
-    @Test
-    fun backendNotSet() {
-        assertThatThrownBy { createBuilder().build() }
-            .isExactlyInstanceOf(IllegalStateException::class.java)
-            .hasMessageStartingWith("No backend set")
+    fun backendDefaultWhenNothingSet() {
+        assertThatNoException().isThrownBy { createBuilder().build() }
     }
 
     @Test

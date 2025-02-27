@@ -166,7 +166,7 @@ class OkHttpClient private constructor(
             return it
         }
 
-        val builder = backend.serviceEndpoint().toHttpUrl().newBuilder()
+        val builder = backend.baseUrl().toHttpUrl().newBuilder()
 
         pathSegments.forEach(builder::addPathSegment)
         queryParams.keys().forEach { key ->

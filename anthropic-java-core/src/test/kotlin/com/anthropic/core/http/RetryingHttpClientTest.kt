@@ -21,7 +21,7 @@ internal class RetryingHttpClientTest {
     private lateinit var httpClient: HttpClient
 
     private class TestBackend(private val baseUrl: String) : Backend {
-        override fun serviceEndpoint(): String = baseUrl
+        override fun baseUrl(): String = baseUrl
         override fun close() {}
     }
 

@@ -2,12 +2,12 @@ package com.anthropic.backends
 
 import com.anthropic.core.http.HttpMethod
 import com.anthropic.core.http.HttpRequest
-import com.anthropic.errors.AnthropicInvalidDataException
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatNoException
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 
-class AnthropicBackendTest {
+internal class AnthropicBackendTest {
     companion object {
         private const val PRODUCTION_URL = "https://api.anthropic.com"
         private const val OTHER_URL = "https://api.example.com"
@@ -16,17 +16,17 @@ class AnthropicBackendTest {
     }
 
     @Test
-    fun serviceEndpointExplicit() {
+    fun baseUrlExplicit() {
         val backend = createBackend(null, AUTH_TOKEN, OTHER_URL)
 
-        assertThat(backend.serviceEndpoint()).isEqualTo(OTHER_URL)
+        assertThat(backend.baseUrl()).isEqualTo(OTHER_URL)
     }
 
     @Test
-    fun serviceEndpointDefault() {
+    fun baseUrlDefault() {
         val backend = createBackend(API_KEY, null, null)
 
-        assertThat(backend.serviceEndpoint()).isEqualTo(PRODUCTION_URL)
+        assertThat(backend.baseUrl()).isEqualTo(PRODUCTION_URL)
     }
 
     @Test
@@ -118,26 +118,24 @@ class AnthropicBackendTest {
 
     @Test
     fun builderApiKeyAndAuthTokenBothSet() {
-        assertThatThrownBy { createBackend(API_KEY, AUTH_TOKEN, null) }
-            .isExactlyInstanceOf(IllegalStateException::class.java)
-            .hasMessageStartingWith("Both")
+        // There is expected to be no enforcement of the mutual exclusion of the
+        // two incompatible credential values.
+        assertThatNoException().isThrownBy {
+            createBackend(API_KEY, AUTH_TOKEN, null)
+        }
     }
 
     @Test
     fun builderApiKeyAndAuthTokenBothNotSet() {
-        assertThatThrownBy { createBackend(null, null, null) }
-            .isExactlyInstanceOf(IllegalStateException::class.java)
-            .hasMessageStartingWith("Neither")
+        // There is expected to be no enforcement of the absence of both
+        // credential values.
+        assertThatNoException().isThrownBy { createBackend(null, null, null) }
     }
 
     private fun createBackend(): AnthropicBackend =
         createBackend(API_KEY, null, null)
 
     /**
-     * Creates a new Anthropic backend test fixture.
-     *
-     * @param apiKey May be `null` only if [authToken] is non-`null`.
-     * @param authToken May be `null` only if [apiKey] is non-`null`.
      * @param baseUrl If `null`, the default production URL is assumed.
      */
     private fun createBackend(

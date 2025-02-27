@@ -152,9 +152,8 @@ class AnthropicOkHttpClientAsync private constructor() {
         fun authToken(authToken: Optional<String>) = authToken(authToken.orElse(null))
 
         fun backend(backend: Backend) = apply {
-            if (defaultBackendBuilder != null) {
-                throw IllegalStateException(
-                    "Default backend already set. Cannot set another backend.")
+            check(defaultBackendBuilder == null) {
+                "Default backend already set. Cannot set another backend."
             }
             this.backend = backend
         }
@@ -165,9 +164,8 @@ class AnthropicOkHttpClientAsync private constructor() {
 
         private fun ensureDefaultBackendBuilder(fromFunction: String)
                 : AnthropicBackend.Builder {
-            if (backend != null) {
-                throw IllegalStateException(
-                    "Backend already set. Cannot now call '$fromFunction'.")
+            check(backend == null) {
+                "Backend already set. Cannot now call '$fromFunction'."
             }
 
             return defaultBackendBuilder ?: AnthropicBackend.builder().also {
@@ -175,9 +173,17 @@ class AnthropicOkHttpClientAsync private constructor() {
             }
         }
 
+        /**
+         * Ensures that a backend is available for the creation of the client.
+         * If no [backend] was set explicitly, or no default backend was set
+         * implicitly by calls to any of [baseUrl], [apiKey], or [authToken],
+         * a new default [AnthropicBackend] backend will be returned with the
+         * default production base URL, no API key and no auth token.
+         */
         private fun ensureBackend(): Backend =
-            defaultBackendBuilder?.build() ?: backend
-            ?: throw IllegalStateException("No backend set.")
+            backend
+                ?: defaultBackendBuilder?.build()
+                ?: ensureDefaultBackendBuilder("ensureBackend").build()
 
         fun build(): AnthropicClientAsync =
             AnthropicClientAsyncImpl(

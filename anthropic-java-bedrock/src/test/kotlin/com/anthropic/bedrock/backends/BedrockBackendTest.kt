@@ -222,18 +222,18 @@ internal class BedrockBackendTest {
     }
 
     @Test
-    fun serviceEndpoint() {
+    fun baseUrl() {
         initEnv()
         val backend = BedrockBackend.fromEnv()
 
         assertThat(backend.awsCredentials)
             .isExactlyInstanceOf(AwsSessionCredentials::class.java)
-        assertThat(backend.serviceEndpoint())
+        assertThat(backend.baseUrl())
             .isEqualTo("https://bedrock-runtime.$AWS_REGION.amazonaws.com")
     }
 
     @Test
-    fun serviceEndpointOtherRegion() {
+    fun baseUrlOtherRegion() {
         initEnv()
         // Try with a *different* region to confirm that it is not hard-coded.
         val otherRegion = "eu-west-1"
@@ -241,7 +241,7 @@ internal class BedrockBackendTest {
         val backend = BedrockBackend.fromEnv()
 
         assertThat(AWS_REGION).isNotEqualTo(otherRegion)
-        assertThat(backend.serviceEndpoint())
+        assertThat(backend.baseUrl())
             .isEqualTo("https://bedrock-runtime.$otherRegion.amazonaws.com")
     }
 

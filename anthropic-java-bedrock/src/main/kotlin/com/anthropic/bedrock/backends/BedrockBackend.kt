@@ -104,7 +104,7 @@ class BedrockBackend private constructor(
         @JvmStatic fun fromEnv(): BedrockBackend = builder().fromEnv().build()
     }
 
-    override fun serviceEndpoint(): String =
+    override fun baseUrl(): String =
         // Could use the AWS "BedrockEndpointProvider" in "fromEnv()", but that
         // is a large dependency that brings in all the competing AWS SDK
         // classes for Bedrock that are not desired in this SDK.
