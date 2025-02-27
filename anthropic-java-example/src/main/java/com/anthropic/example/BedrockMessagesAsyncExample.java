@@ -44,9 +44,8 @@ public final class BedrockMessagesAsyncExample {
     private BedrockMessagesAsyncExample() {}
 
     public static void main(String[] args) throws Exception {
-        AwsCredentials awsCredentials = AwsBasicCredentials.create(
-                System.getenv("AWS_ACCESS_KEY_ID"),
-                System.getenv("AWS_SECRET_ACCESS_KEY"));
+        AwsCredentials awsCredentials =
+                AwsBasicCredentials.create(System.getenv("AWS_ACCESS_KEY_ID"), System.getenv("AWS_SECRET_ACCESS_KEY"));
 
         AnthropicClientAsync client = AnthropicOkHttpClientAsync.builder()
                 .backend(BedrockBackend.builder()

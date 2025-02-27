@@ -10,9 +10,7 @@ internal class HttpRequestTest {
 
         assertThat(request1.pathSegments.size).isEqualTo(0)
 
-        val request2 = request1.toBuilder()
-            .replaceAllPathSegments()
-            .build()
+        val request2 = request1.toBuilder().replaceAllPathSegments().build()
 
         assertThat(request2.pathSegments.size).isEqualTo(0)
     }
@@ -27,18 +25,15 @@ internal class HttpRequestTest {
         assertThat(request1.pathSegments[0]).isEqualTo("s1")
         assertThat(request1.pathSegments[1]).isEqualTo("s2")
 
-        val request2 = request1.toBuilder()
-            .replaceAllPathSegments()
-            .build()
+        val request2 = request1.toBuilder().replaceAllPathSegments().build()
 
         assertThat(request2.pathSegments.size).isEqualTo(0)
     }
 
     @Test
     fun replaceAllPathSegmentsSomeWithSome() {
-        val request = createRequest("s1", "s2").toBuilder()
-            .replaceAllPathSegments("s3", "s4")
-            .build()
+        val request =
+            createRequest("s1", "s2").toBuilder().replaceAllPathSegments("s3", "s4").build()
 
         assertThat(request.pathSegments.size).isEqualTo(2)
         assertThat(request.pathSegments[0]).isEqualTo("s3")
@@ -47,11 +42,13 @@ internal class HttpRequestTest {
 
     @Test
     fun replaceAllPathSegmentsWhileBuilding() {
-        val request = createRequest().toBuilder()
-            .addPathSegments("s1", "s2")
-            .replaceAllPathSegments("s3", "s4")
-            .addPathSegments("s5", "s6")
-            .build()
+        val request =
+            createRequest()
+                .toBuilder()
+                .addPathSegments("s1", "s2")
+                .replaceAllPathSegments("s3", "s4")
+                .addPathSegments("s5", "s6")
+                .build()
 
         assertThat(request.pathSegments.size).isEqualTo(4)
         assertThat(request.pathSegments[0]).isEqualTo("s3")

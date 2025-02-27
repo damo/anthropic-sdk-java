@@ -33,40 +33,38 @@ import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain
 import software.amazon.eventstream.MessageDecoder
 
 /**
- * The Amazon Bedrock backend that manages the AWS credentials required to
- * access an Anthropic AI model on the Bedrock service and adapts requests and
- * responses to Bedrock's requirements.
+ * The Amazon Bedrock backend that manages the AWS credentials required to access an Anthropic AI
+ * model on the Bedrock service and adapts requests and responses to Bedrock's requirements.
  *
- * Amazon Bedrock requires cryptographically-signed requests using credentials
- * issued by AWS. These can be provided via system properties, environment
- * variables, or other AWS facilities. They can be resolved automatically by
- * the default AWS provider chains by calling [Builder.fromEnv]. Alternatively,
- * the AWS credentials and region can be resolved independently and passed to
- * [Builder.awsCredentials] and [Builder.region] should an alternative method
- * of resolution be required.
+ * Amazon Bedrock requires cryptographically-signed requests using credentials issued by AWS. These
+ * can be provided via system properties, environment variables, or other AWS facilities. They can
+ * be resolved automatically by the default AWS provider chains by calling [Builder.fromEnv].
+ * Alternatively, the AWS credentials and region can be resolved independently and passed to
+ * [Builder.awsCredentials] and [Builder.region] should an alternative method of resolution be
+ * required.
  *
- * See the Amazon Bedrock and AWS documentation for details on how to configure
- * AWS credentials.
+ * See the Amazon Bedrock and AWS documentation for details on how to configure AWS credentials.
  */
-class BedrockBackend private constructor(
+class BedrockBackend
+private constructor(
     @get:JvmName("awsCredentials") val awsCredentials: AwsCredentials,
-
     @get:JvmName("region") val region: Region,
 ) : Backend {
 
     private val jsonMapper = jsonMapper()
 
-    private val sseThreadPool = Executors.newCachedThreadPool(
-        object : ThreadFactory {
-            private val threadFactory = Executors.defaultThreadFactory()
-            private val count = AtomicLong(0)
+    private val sseThreadPool =
+        Executors.newCachedThreadPool(
+            object : ThreadFactory {
+                private val threadFactory = Executors.defaultThreadFactory()
+                private val count = AtomicLong(0)
 
-            override fun newThread(runnable: Runnable): Thread =
-                threadFactory.newThread(runnable).apply {
-                    name = "bedrock-sse-pipeline-${count.getAndIncrement()}"
-                }
-        }
-    )
+                override fun newThread(runnable: Runnable): Thread =
+                    threadFactory.newThread(runnable).apply {
+                        name = "bedrock-sse-pipeline-${count.getAndIncrement()}"
+                    }
+            }
+        )
 
     companion object {
         private const val ANTHROPIC_VERSION = "bedrock-2023-05-31"
@@ -76,28 +74,23 @@ class BedrockBackend private constructor(
         private const val CONTENT_TYPE_JSON = "application/json"
 
         /**
-         * The name of the header that identifies the content type for the
-         * "payloads" of AWS _EventStream_ messages in streaming responses from
-         * Bedrock.
+         * The name of the header that identifies the content type for the "payloads" of AWS
+         * _EventStream_ messages in streaming responses from Bedrock.
          */
-        private const val HEADER_PAYLOAD_CONTENT_TYPE =
-            "x-amzn-bedrock-content-type"
+        private const val HEADER_PAYLOAD_CONTENT_TYPE = "x-amzn-bedrock-content-type"
 
         /**
-         * The content type for Bedrock responses containing data in the AWS
-         * _EventStream_ format. The value of the [HEADER_PAYLOAD_CONTENT_TYPE]
-         * header identifies the content type of the "payloads" in this stream.
+         * The content type for Bedrock responses containing data in the AWS _EventStream_ format.
+         * The value of the [HEADER_PAYLOAD_CONTENT_TYPE] header identifies the content type of the
+         * "payloads" in this stream.
          */
-        private const val CONTENT_TYPE_AWS_EVENT_STREAM =
-            "application/vnd.amazon.eventstream"
+        private const val CONTENT_TYPE_AWS_EVENT_STREAM = "application/vnd.amazon.eventstream"
 
         /**
-         * The content type for Anthropic responses containing Bedrock data
-         * after it has been translated into the Server-Sent Events (SSE) stream
-         * format.
+         * The content type for Anthropic responses containing Bedrock data after it has been
+         * translated into the Server-Sent Events (SSE) stream format.
          */
-        private const val CONTENT_TYPE_SSE_STREAM =
-            "text/event-stream; charset=utf-8"
+        private const val CONTENT_TYPE_SSE_STREAM = "text/event-stream; charset=utf-8"
 
         @JvmStatic fun builder() = Builder()
 
@@ -114,66 +107,64 @@ class BedrockBackend private constructor(
         val pathSegments = request.pathSegments
 
         if (pathSegments.isEmpty()) {
-            throw AnthropicInvalidDataException(
-                "Request missing all path segments.")
+            throw AnthropicInvalidDataException("Request missing all path segments.")
         }
 
-        require(pathSegments[0] != "model") {
-            "Request already prepared for Bedrock."
-        }
+        require(pathSegments[0] != "model") { "Request already prepared for Bedrock." }
 
         if (pathSegments[0] != "v1") {
-            throw AnthropicInvalidDataException(
-                "Expected first 'v1' path segment.")
+            throw AnthropicInvalidDataException("Expected first 'v1' path segment.")
         }
 
         if (pathSegments.size <= 1) {
-            throw AnthropicInvalidDataException(
-                "Missing service name from request URL.")
+            throw AnthropicInvalidDataException("Missing service name from request URL.")
         }
 
         when (pathSegments[1]) {
             "messages" -> {
                 if (pathSegments.size > 2) {
                     when (pathSegments[2]) {
-                        "batches" -> throw AnthropicException(
-                            "Batch API is not supported for Bedrock.")
-                        "count_tokens" -> throw AnthropicException(
-                            "Token counting is not supported for Bedrock.")
+                        "batches" ->
+                            throw AnthropicException("Batch API is not supported for Bedrock.")
+                        "count_tokens" ->
+                            throw AnthropicException("Token counting is not supported for Bedrock.")
                     } // For now, ignore any other path segments.
                 }
             }
             "complete" -> {
                 // Do nothing special.
             }
-            else -> throw AnthropicException(
-                "Service is not supported for Bedrock: ${pathSegments[1]}.")
+            else ->
+                throw AnthropicException(
+                    "Service is not supported for Bedrock: ${pathSegments[1]}."
+                )
         }
 
-        val jsonBody: ObjectNode = bodyToJson(jsonMapper, request.body)
-            ?: throw AnthropicInvalidDataException("Request has no body")
+        val jsonBody: ObjectNode =
+            bodyToJson(jsonMapper, request.body)
+                ?: throw AnthropicInvalidDataException("Request has no body")
 
         jsonBody.put("anthropic_version", ANTHROPIC_VERSION)
 
-        val betaVersions = request.headers.values(HEADER_ANTHROPIC_BETA)
-            .flatMap { it.split(",") }.distinct()
+        val betaVersions =
+            request.headers.values(HEADER_ANTHROPIC_BETA).flatMap { it.split(",") }.distinct()
 
         if (betaVersions.isNotEmpty()) {
-            jsonBody.replace(
-                "anthropic_beta", jsonMapper.valueToTree(betaVersions))
+            jsonBody.replace("anthropic_beta", jsonMapper.valueToTree(betaVersions))
         }
 
-        val model = jsonBody.remove("model")
-            ?: throw AnthropicInvalidDataException("No model found in body.")
+        val model =
+            jsonBody.remove("model")
+                ?: throw AnthropicInvalidDataException("No model found in body.")
         val modelId = model.asText()
         // For Bedrock, the "stream" property must be removed from the body.
         // This differs from Vertex where the property is retained.
         val isStream = jsonBody.remove("stream")?.asBoolean() ?: false
 
-        return request.toBuilder()
+        return request
+            .toBuilder()
             .replaceAllPathSegments("model", modelId)
-            .addPathSegment(
-                if (isStream) "invoke-with-response-stream" else "invoke")
+            .addPathSegment(if (isStream) "invoke-with-response-stream" else "invoke")
             .body(json(jsonMapper, jsonBody))
             .build()
     }
@@ -183,70 +174,67 @@ class BedrockBackend private constructor(
             "Request already authorized for Bedrock."
         }
 
-        val awsSignRequest = SdkHttpRequest.builder()
-            .uri(request.url)
-            .method(SdkHttpMethod.fromValue(request.method.toString()))
-            .apply {
-                // For the signature, copy the content type header from the body
-                // if the request object has no content type header. If there is
-                // no content type header, die. There needs to be one, otherwise
-                // the "sign()" call later will add a "content-type" header with
-                // a "null" value and crash "replaceAllHeaders". It is better to
-                // provide a meaningful error earlier in the execution.
-                if (request.headers.values(HEADER_CONTENT_TYPE).isEmpty()) {
-                    if (request.body?.contentType() != null) {
-                        appendHeader(HEADER_CONTENT_TYPE,
-                            request.body!!.contentType())
-                    } else {
-                        throw AnthropicInvalidDataException(
-                            "No content type in request headers or body.")
+        val awsSignRequest =
+            SdkHttpRequest.builder()
+                .uri(request.url)
+                .method(SdkHttpMethod.fromValue(request.method.toString()))
+                .apply {
+                    // For the signature, copy the content type header from the body
+                    // if the request object has no content type header. If there is
+                    // no content type header, die. There needs to be one, otherwise
+                    // the "sign()" call later will add a "content-type" header with
+                    // a "null" value and crash "replaceAllHeaders". It is better to
+                    // provide a meaningful error earlier in the execution.
+                    if (request.headers.values(HEADER_CONTENT_TYPE).isEmpty()) {
+                        if (request.body?.contentType() != null) {
+                            appendHeader(HEADER_CONTENT_TYPE, request.body!!.contentType())
+                        } else {
+                            throw AnthropicInvalidDataException(
+                                "No content type in request headers or body."
+                            )
+                        }
+                    }
+                    request.headers.names().forEach { name ->
+                        request.headers.values(name).forEach { value -> appendHeader(name, value) }
                     }
                 }
-                request.headers.names().forEach { name ->
-                    request.headers.values(name).forEach { value ->
-                        appendHeader(name, value)
-                    }
-                }
-            }
-            .build()
+                .build()
 
         val bodyData = ByteArrayOutputStream()
 
         request.body?.writeTo(bodyData)
 
         val awsSignedRequest: SdkHttpRequest =
-            AwsV4HttpSigner.create().sign {
-                    r: SignRequest.Builder<AwsCredentialsIdentity?> ->
-                r.identity(awsCredentials)
-                    .request(awsSignRequest)
-                    .payload(ContentStreamProvider.fromByteArray(
-                        bodyData.toByteArray()))
-                    // The service *signing* name "bedrock" is not the same as
-                    // the service name in the URL ("bedrock-runtime").
-                    .putProperty(
-                        AwsV4HttpSigner.SERVICE_SIGNING_NAME, "bedrock")
-                    .putProperty(AwsV4HttpSigner.REGION_NAME, region.id())
-            }.request()
+            AwsV4HttpSigner.create()
+                .sign { r: SignRequest.Builder<AwsCredentialsIdentity?> ->
+                    r.identity(awsCredentials)
+                        .request(awsSignRequest)
+                        .payload(ContentStreamProvider.fromByteArray(bodyData.toByteArray()))
+                        // The service *signing* name "bedrock" is not the same as
+                        // the service name in the URL ("bedrock-runtime").
+                        .putProperty(AwsV4HttpSigner.SERVICE_SIGNING_NAME, "bedrock")
+                        .putProperty(AwsV4HttpSigner.REGION_NAME, region.id())
+                }
+                .request()
 
         // Overwrite any headers with the same names already present.
-        return request.toBuilder()
-            .replaceAllHeaders(awsSignedRequest.headers())
-            .build()
+        return request.toBuilder().replaceAllHeaders(awsSignedRequest.headers()).build()
     }
 
     override fun prepareResponse(response: HttpResponse): HttpResponse {
-        if (!response.headers().values(HEADER_CONTENT_TYPE)
-                .contains(CONTENT_TYPE_AWS_EVENT_STREAM)) {
+        if (
+            !response.headers().values(HEADER_CONTENT_TYPE).contains(CONTENT_TYPE_AWS_EVENT_STREAM)
+        ) {
             return response
         }
 
-        val payloadContentType =
-            response.headers().values(HEADER_PAYLOAD_CONTENT_TYPE)
+        val payloadContentType = response.headers().values(HEADER_PAYLOAD_CONTENT_TYPE)
 
         if (!payloadContentType.contains(CONTENT_TYPE_JSON)) {
             throw AnthropicInvalidDataException(
                 "Expected streamed Bedrock events to have content type of " +
-                        "$CONTENT_TYPE_JSON, but was $payloadContentType.")
+                    "$CONTENT_TYPE_JSON, but was $payloadContentType."
+            )
         }
 
         val responseInput = response.body()
@@ -267,7 +255,8 @@ class BedrockBackend private constructor(
         // event (SSE) that might look like this:
         //
         //   event: content_block_delta
-        //   data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}
+        //   data:
+        // {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}
         //
         // Print the SSE (with a blank line after) to the piped output stream to
         // complete the translation process.
@@ -284,15 +273,16 @@ class BedrockBackend private constructor(
                     // When fed enough data (see loop, below) to create a new
                     // "Message", the "Consumer.accept" lambda here is fired.
                     val messageDecoder = MessageDecoder { message ->
-                        val sseJson = String(
-                            Base64.getDecoder().decode(
-                                jsonMapper.readTree(message.payload)
-                                    .get("bytes").asText()))
-                        val sseEventType = jsonMapper.readTree(sseJson)
-                            .get("type").asText()
+                        val sseJson =
+                            String(
+                                Base64.getDecoder()
+                                    .decode(
+                                        jsonMapper.readTree(message.payload).get("bytes").asText()
+                                    )
+                            )
+                        val sseEventType = jsonMapper.readTree(sseJson).get("type").asText()
 
-                        output.write("event: $sseEventType\ndata: $sseJson\n\n"
-                            .toByteArray())
+                        output.write("event: $sseEventType\ndata: $sseJson\n\n".toByteArray())
                         output.flush()
                     }
 
@@ -309,7 +299,9 @@ class BedrockBackend private constructor(
             override fun statusCode(): Int = response.statusCode()
 
             override fun headers(): Headers =
-                response.headers().toBuilder()
+                response
+                    .headers()
+                    .toBuilder()
                     .replace(HEADER_CONTENT_TYPE, CONTENT_TYPE_SSE_STREAM)
                     .build()
 
@@ -324,13 +316,13 @@ class BedrockBackend private constructor(
     }
 
     /**
-     * A builder for a [BedrockBackend] used to connect an Anthropic client to
-     * an Amazon Bedrock backend service.
+     * A builder for a [BedrockBackend] used to connect an Anthropic client to an Amazon Bedrock
+     * backend service.
      *
-     * The AWS credentials and region can be extracted from the environment and
-     * set on the builder by calling [fromEnv] before calling [build] to create
-     * the [BedrockBackend]. Alternatively, set the AWS credentials and region
-     * explicitly via [awsCredentials] and [region] before calling [build].
+     * The AWS credentials and region can be extracted from the environment and set on the builder
+     * by calling [fromEnv] before calling [build] to create the [BedrockBackend]. Alternatively,
+     * set the AWS credentials and region explicitly via [awsCredentials] and [region] before
+     * calling [build].
      */
     class Builder internal constructor() {
         private var awsCredentials: AwsCredentials? = null
@@ -339,11 +331,12 @@ class BedrockBackend private constructor(
 
         fun fromEnv() = apply {
             try {
-                awsCredentials =
-                    DefaultCredentialsProvider.create().resolveCredentials()
+                awsCredentials = DefaultCredentialsProvider.create().resolveCredentials()
             } catch (e: Exception) {
                 throw IllegalStateException(
-                    "No AWS access key ID or AWS secret access key found.", e)
+                    "No AWS access key ID or AWS secret access key found.",
+                    e,
+                )
             }
             try {
                 region = DefaultAwsRegionProviderChain.builder().build().region
@@ -358,9 +351,10 @@ class BedrockBackend private constructor(
 
         fun region(region: Region) = apply { this.region = region }
 
-        fun build(): BedrockBackend = BedrockBackend(
-            checkRequired("awsCredentials", awsCredentials),
-            checkRequired("region", region),
-        )
+        fun build(): BedrockBackend =
+            BedrockBackend(
+                checkRequired("awsCredentials", awsCredentials),
+                checkRequired("region", region),
+            )
     }
 }

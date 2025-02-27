@@ -1,6 +1,5 @@
 package com.anthropic.example;
 
-import com.anthropic.bedrock.backends.BedrockBackend;
 import com.anthropic.client.AnthropicClientAsync;
 import com.anthropic.client.okhttp.AnthropicOkHttpClientAsync;
 import com.anthropic.models.BetaMessageCreateParams;
@@ -52,7 +51,8 @@ public final class VertexBetaMessagesStreamingAsyncExample {
                 .addUserMessage("Tell me a story about building the best SDK!")
                 .build();
 
-        client.beta().messages()
+        client.beta()
+                .messages()
                 .createStreaming(createParams)
                 .subscribe(event -> event.contentBlockDelta().stream()
                         .flatMap(deltaEvent -> deltaEvent.delta().betaText().stream())

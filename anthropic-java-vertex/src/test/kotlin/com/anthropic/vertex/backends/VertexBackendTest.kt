@@ -17,8 +17,7 @@ import org.junit.jupiter.api.Test
 internal class VertexBackendTest {
     companion object {
         // This is *not* a real token.
-        private const val ACCESS_TOKEN =
-            "bXad1rxDyYfoRm8adi66C6dgX6x8eIp2Yx9y2VK3"
+        private const val ACCESS_TOKEN = "bXad1rxDyYfoRm8adi66C6dgX6x8eIp2Yx9y2VK3"
         // This is *not* a real ID.
         private const val GC_PROJECT = "vertex-project-12345-b6"
         private const val MODEL_ID = "claude-3-sonnet"
@@ -34,12 +33,7 @@ internal class VertexBackendTest {
 
     @Test
     fun builderMissingCredentials() {
-        assertThatThrownBy {
-            VertexBackend.builder()
-                .region(GC_REGION)
-                .project(GC_PROJECT)
-                .build()
-        }
+        assertThatThrownBy { VertexBackend.builder().region(GC_REGION).project(GC_PROJECT).build() }
             .isExactlyInstanceOf(IllegalStateException::class.java)
             .hasMessageContaining("googleCredentials")
     }
@@ -47,11 +41,11 @@ internal class VertexBackendTest {
     @Test
     fun builderMissingRegion() {
         assertThatThrownBy {
-            VertexBackend.builder()
-                .googleCredentials(createCredentials())
-                .project(GC_PROJECT)
-                .build()
-        }
+                VertexBackend.builder()
+                    .googleCredentials(createCredentials())
+                    .project(GC_PROJECT)
+                    .build()
+            }
             .isExactlyInstanceOf(IllegalStateException::class.java)
             .hasMessageContaining("region")
     }
@@ -59,11 +53,11 @@ internal class VertexBackendTest {
     @Test
     fun builderMissingProject() {
         assertThatThrownBy {
-            VertexBackend.builder()
-                .googleCredentials(createCredentials())
-                .region(GC_REGION)
-                .build()
-        }
+                VertexBackend.builder()
+                    .googleCredentials(createCredentials())
+                    .region(GC_REGION)
+                    .build()
+            }
             .isExactlyInstanceOf(IllegalStateException::class.java)
             .hasMessageContaining("project")
     }
@@ -72,8 +66,7 @@ internal class VertexBackendTest {
     fun baseUrl() {
         val backend = createBackend()
 
-        assertThat(backend.baseUrl())
-            .isEqualTo("https://$GC_REGION-aiplatform.googleapis.com")
+        assertThat(backend.baseUrl()).isEqualTo("https://$GC_REGION-aiplatform.googleapis.com")
     }
 
     @Test
@@ -81,12 +74,10 @@ internal class VertexBackendTest {
         // Try with a *different* region to confirm that it is not hard-coded.
         val backend1 = createBackend()
         val otherRegion = "europe-west1"
-        val backend2 = createBackend(
-            backend1.googleCredentials, otherRegion, backend1.project)
+        val backend2 = createBackend(backend1.googleCredentials, otherRegion, backend1.project)
 
         assertThat(GC_REGION).isNotEqualTo(otherRegion)
-        assertThat(backend2.baseUrl())
-            .isEqualTo("https://$otherRegion-aiplatform.googleapis.com")
+        assertThat(backend2.baseUrl()).isEqualTo("https://$otherRegion-aiplatform.googleapis.com")
     }
 
     @Test
@@ -126,16 +117,14 @@ internal class VertexBackendTest {
     fun prepareRequestMissingV1() {
         val backend = createBackend()
         // Request does not contain a "v1" path segment.
-        val request1 = createRequest(
-            """{"model":"$MODEL_ID"}""", "d1", "messages")
+        val request1 = createRequest("""{"model":"$MODEL_ID"}""", "d1", "messages")
 
         assertThatThrownBy { backend.prepareRequest(request1) }
             .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
             .hasMessageStartingWith("Expected first 'v1'")
 
         // Request contains a "v1" path segment, but not in first place.
-        val request2 = createRequest(
-            """{"model":"$MODEL_ID"}""", "messages", "v1")
+        val request2 = createRequest("""{"model":"$MODEL_ID"}""", "messages", "v1")
 
         assertThatThrownBy { backend.prepareRequest(request2) }
             .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
@@ -156,20 +145,17 @@ internal class VertexBackendTest {
     @Test
     fun prepareRequestUnsupportedServiceName() {
         val backend = createBackend()
-        val request = createRequest(
-            """{"model":"$MODEL_ID"}""", "v1", "not-messages")
+        val request = createRequest("""{"model":"$MODEL_ID"}""", "v1", "not-messages")
 
         assertThatThrownBy { backend.prepareRequest(request) }
             .isExactlyInstanceOf(AnthropicException::class.java)
-            .hasMessageStartingWith(
-                "Service is not supported for Vertex: not-messages")
+            .hasMessageStartingWith("Service is not supported for Vertex: not-messages")
     }
 
     @Test
     fun prepareRequestMessagesBatchesNotSupported() {
         val backend = createBackend()
-        val request = createRequest(
-            """{"model":"$MODEL_ID"}""", "v1", "messages", "batches")
+        val request = createRequest("""{"model":"$MODEL_ID"}""", "v1", "messages", "batches")
 
         assertThatThrownBy { backend.prepareRequest(request) }
             .isExactlyInstanceOf(AnthropicException::class.java)
@@ -179,8 +165,7 @@ internal class VertexBackendTest {
     @Test
     fun prepareRequestAlreadyPrepared() {
         val backend = createBackend()
-        val request = createRequest(
-            """{"model":"$MODEL_ID"}""", "v1", "messages")
+        val request = createRequest("""{"model":"$MODEL_ID"}""", "v1", "messages")
         val preparedRequest = backend.prepareRequest(request)
 
         assertThatThrownBy { backend.prepareRequest(preparedRequest) }
@@ -193,9 +178,13 @@ internal class VertexBackendTest {
         val backend = createBackend()
         // Streaming option should be ignored (i.e., later we should see
         // "rawPredict", not "streamRawPredict" in the path segments).
-        val request = createRequest(
-            """{"model":"$MODEL_ID", "stream":true}""",
-            "v1", "messages", "count_tokens")
+        val request =
+            createRequest(
+                """{"model":"$MODEL_ID", "stream":true}""",
+                "v1",
+                "messages",
+                "count_tokens",
+            )
         val preparedRequest = backend.prepareRequest(request)
         val pathSegments = preparedRequest.pathSegments
 
@@ -218,15 +207,13 @@ internal class VertexBackendTest {
         assertThat(json).isNotNull()
         assertThat(json!!.get("model").asText()).isEqualTo(MODEL_ID)
         assertThat(json.get("stream").asBoolean()).isEqualTo(true)
-        assertThat(json.get("anthropic_version").asText())
-            .isEqualTo(ANTHROPIC_VERSION)
+        assertThat(json.get("anthropic_version").asText()).isEqualTo(ANTHROPIC_VERSION)
     }
 
     @Test
     fun prepareRequestMessages() {
         val backend = createBackend()
-        val request = createRequest(
-            """{"model":"$MODEL_ID"}""", "v1", "messages")
+        val request = createRequest("""{"model":"$MODEL_ID"}""", "v1", "messages")
         val preparedRequest = backend.prepareRequest(request)
         val pathSegments = preparedRequest.pathSegments
         val json = bodyToJson(jsonMapper(), preparedRequest.body)
@@ -247,15 +234,13 @@ internal class VertexBackendTest {
         assertThat(json).isNotNull()
         assertThat(json!!.get("model")).isNull()
         assertThat(json.get("stream")).isNull()
-        assertThat(json.get("anthropic_version").asText())
-            .isEqualTo(ANTHROPIC_VERSION)
+        assertThat(json.get("anthropic_version").asText()).isEqualTo(ANTHROPIC_VERSION)
     }
 
     @Test
     fun prepareRequestMessagesStreaming() {
         val backend = createBackend()
-        val request = createRequest(
-            """{"model":"$MODEL_ID", "stream":true}""", "v1", "messages")
+        val request = createRequest("""{"model":"$MODEL_ID", "stream":true}""", "v1", "messages")
         val preparedRequest = backend.prepareRequest(request)
         val pathSegments = preparedRequest.pathSegments
         val json = bodyToJson(jsonMapper(), preparedRequest.body)
@@ -276,15 +261,13 @@ internal class VertexBackendTest {
         assertThat(json).isNotNull()
         assertThat(json!!.get("model")).isNull()
         assertThat(json.get("stream").asBoolean()).isEqualTo(true)
-        assertThat(json.get("anthropic_version").asText())
-            .isEqualTo(ANTHROPIC_VERSION)
+        assertThat(json.get("anthropic_version").asText()).isEqualTo(ANTHROPIC_VERSION)
     }
 
     @Test
     fun prepareRequestMessagesStreamingExplicitlyDisabled() {
         val backend = createBackend()
-        val request = createRequest(
-            """{"model":"$MODEL_ID","stream":false}""", "v1", "messages")
+        val request = createRequest("""{"model":"$MODEL_ID","stream":false}""", "v1", "messages")
         val preparedRequest = backend.prepareRequest(request)
         val pathSegments = preparedRequest.pathSegments
         val json = bodyToJson(jsonMapper(), preparedRequest.body)
@@ -305,15 +288,13 @@ internal class VertexBackendTest {
         assertThat(json).isNotNull()
         assertThat(json!!.get("model")).isNull()
         assertThat(json.get("stream").asBoolean()).isEqualTo(false)
-        assertThat(json.get("anthropic_version").asText())
-            .isEqualTo(ANTHROPIC_VERSION)
+        assertThat(json.get("anthropic_version").asText()).isEqualTo(ANTHROPIC_VERSION)
     }
 
     @Test
     fun prepareRequestComplete() {
         val backend = createBackend()
-        val request = createRequest(
-            """{"model":"$MODEL_ID"}""", "v1", "complete")
+        val request = createRequest("""{"model":"$MODEL_ID"}""", "v1", "complete")
         val preparedRequest = backend.prepareRequest(request)
         val pathSegments = preparedRequest.pathSegments
         val json = bodyToJson(jsonMapper(), preparedRequest.body)
@@ -334,15 +315,13 @@ internal class VertexBackendTest {
         assertThat(json).isNotNull()
         assertThat(json!!.get("model")).isNull()
         assertThat(json.get("stream")).isNull()
-        assertThat(json.get("anthropic_version").asText())
-            .isEqualTo(ANTHROPIC_VERSION)
+        assertThat(json.get("anthropic_version").asText()).isEqualTo(ANTHROPIC_VERSION)
     }
 
     @Test
     fun prepareRequestCompleteStreaming() {
         val backend = createBackend()
-        val request = createRequest(
-            """{"model":"$MODEL_ID","stream":true}""", "v1", "complete")
+        val request = createRequest("""{"model":"$MODEL_ID","stream":true}""", "v1", "complete")
         val preparedRequest = backend.prepareRequest(request)
         val pathSegments = preparedRequest.pathSegments
         val json = bodyToJson(jsonMapper(), preparedRequest.body)
@@ -363,21 +342,21 @@ internal class VertexBackendTest {
         assertThat(json).isNotNull()
         assertThat(json!!.get("model")).isNull()
         assertThat(json.get("stream").asBoolean()).isEqualTo(true)
-        assertThat(json.get("anthropic_version").asText())
-            .isEqualTo(ANTHROPIC_VERSION)
+        assertThat(json.get("anthropic_version").asText()).isEqualTo(ANTHROPIC_VERSION)
     }
 
     @Test
     fun authorizeRequestAlreadyAuthorized() {
         val backend = createBackend()
-        val request = HttpRequest.builder()
-            .method(HttpMethod.POST)
-            .url("https://$GC_REGION-aiplatform.googleapis.com/path1/path2")
-            .addPathSegment("path-1")
-            .putQueryParam("param-1", "param-value-1")
-            .putHeader("content-type", "on/request")
-            .putHeader("X-Test", "header-value")
-            .build()
+        val request =
+            HttpRequest.builder()
+                .method(HttpMethod.POST)
+                .url("https://$GC_REGION-aiplatform.googleapis.com/path1/path2")
+                .addPathSegment("path-1")
+                .putQueryParam("param-1", "param-value-1")
+                .putHeader("content-type", "on/request")
+                .putHeader("X-Test", "header-value")
+                .build()
         val authorizedRequest = backend.authorizeRequest(request)
 
         assertThatThrownBy { backend.authorizeRequest(authorizedRequest) }
@@ -388,18 +367,19 @@ internal class VertexBackendTest {
     @Test
     fun authorizeRequest() {
         val backend = createBackend()
-        val request = HttpRequest.builder()
-            .method(HttpMethod.POST)
-            .url("https://$GC_REGION-aiplatform.googleapis.com/path1/path2")
-            .addPathSegment("path-1")
-            .addPathSegment("path-2")
-            .putQueryParam("param-1", "param-value-1a")
-            .putQueryParam("param-1", "param-value-1b")
-            .putQueryParam("param-2", "param-value-2")
-            .putHeader("content-type", "on/request")
-            .putHeader("X-Test", "header-value-a")
-            .putHeader("X-Test", "header-value-b")
-            .build()
+        val request =
+            HttpRequest.builder()
+                .method(HttpMethod.POST)
+                .url("https://$GC_REGION-aiplatform.googleapis.com/path1/path2")
+                .addPathSegment("path-1")
+                .addPathSegment("path-2")
+                .putQueryParam("param-1", "param-value-1a")
+                .putQueryParam("param-1", "param-value-1b")
+                .putQueryParam("param-2", "param-value-2")
+                .putHeader("content-type", "on/request")
+                .putHeader("X-Test", "header-value-a")
+                .putHeader("X-Test", "header-value-b")
+                .build()
         val authorizedRequest = backend.authorizeRequest(request)
         val headers = authorizedRequest.headers
 
@@ -417,16 +397,11 @@ internal class VertexBackendTest {
         // values store those values in order of insertion. That assumption
         // holds for the current implementation.
         assertThat(authorizedRequest.queryParams.keys().size).isEqualTo(2)
-        assertThat(authorizedRequest.queryParams.values("param-1").size)
-            .isEqualTo(2)
-        assertThat(authorizedRequest.queryParams.values("param-1")[0])
-            .isEqualTo("param-value-1a")
-        assertThat(authorizedRequest.queryParams.values("param-1")[1])
-            .isEqualTo("param-value-1b")
-        assertThat(authorizedRequest.queryParams.values("param-2").size)
-            .isEqualTo(1)
-        assertThat(authorizedRequest.queryParams.values("param-2")[0])
-            .isEqualTo("param-value-2")
+        assertThat(authorizedRequest.queryParams.values("param-1").size).isEqualTo(2)
+        assertThat(authorizedRequest.queryParams.values("param-1")[0]).isEqualTo("param-value-1a")
+        assertThat(authorizedRequest.queryParams.values("param-1")[1]).isEqualTo("param-value-1b")
+        assertThat(authorizedRequest.queryParams.values("param-2").size).isEqualTo(1)
+        assertThat(authorizedRequest.queryParams.values("param-2")[0]).isEqualTo("param-value-2")
 
         assertThat(headers.names()).contains("content-type")
         assertThat(headers.values("content-type").size).isEqualTo(1)
@@ -446,21 +421,18 @@ internal class VertexBackendTest {
         // Google credentials.
         assertThat(headers.names()).contains("Authorization")
         assertThat(headers.values("Authorization").size).isEqualTo(1)
-        assertThat(headers.values("Authorization")[0])
-            .isEqualTo("Bearer $ACCESS_TOKEN")
+        assertThat(headers.values("Authorization")[0]).isEqualTo("Bearer $ACCESS_TOKEN")
     }
 
     private fun parseJson(jsonData: String): ObjectNode =
         jsonMapper().readValue(jsonData, ObjectNode::class.java)
 
     /**
-     * @param jsonData The JSON data to add to the body of request. If `null`
-     *     a body will not be added to the request. If not `null`, the data must
-     *     represent a valid JSON model, even a minimal `{}`, or an error will
-     *     occur.
+     * @param jsonData The JSON data to add to the body of request. If `null` a body will not be
+     *   added to the request. If not `null`, the data must represent a valid JSON model, even a
+     *   minimal `{}`, or an error will occur.
      */
-    private fun createRequest(
-        jsonData: String?, vararg pathSegments: String): HttpRequest =
+    private fun createRequest(jsonData: String?, vararg pathSegments: String): HttpRequest =
         HttpRequest.builder()
             .method(HttpMethod.POST) // A method is required.
             .addPathSegments(*pathSegments)
@@ -471,14 +443,16 @@ internal class VertexBackendTest {
         createBackend(createCredentials(), GC_REGION, GC_PROJECT)
 
     private fun createBackend(
-        googleCredentials: GoogleCredentials, region: String, project: String)
-            : VertexBackend = VertexBackend.builder()
-        .googleCredentials(googleCredentials)
-        .region(region)
-        .project(project)
-        .build()
+        googleCredentials: GoogleCredentials,
+        region: String,
+        project: String,
+    ): VertexBackend =
+        VertexBackend.builder()
+            .googleCredentials(googleCredentials)
+            .region(region)
+            .project(project)
+            .build()
 
     private fun createCredentials(): GoogleCredentials =
-        GoogleCredentials.create(
-            AccessToken.newBuilder().setTokenValue(ACCESS_TOKEN).build())
+        GoogleCredentials.create(AccessToken.newBuilder().setTokenValue(ACCESS_TOKEN).build())
 }

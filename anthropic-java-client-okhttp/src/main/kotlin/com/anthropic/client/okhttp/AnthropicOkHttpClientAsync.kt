@@ -139,9 +139,7 @@ class AnthropicOkHttpClientAsync private constructor() {
             clientOptions.responseValidation(responseValidation)
         }
 
-        fun apiKey(apiKey: String?) = apply {
-            ensureDefaultBackendBuilder("apiKey").apiKey(apiKey)
-        }
+        fun apiKey(apiKey: String?) = apply { ensureDefaultBackendBuilder("apiKey").apiKey(apiKey) }
 
         fun apiKey(apiKey: Optional<String>) = apiKey(apiKey.orElse(null))
 
@@ -158,27 +156,20 @@ class AnthropicOkHttpClientAsync private constructor() {
             this.backend = backend
         }
 
-        fun fromEnv() = apply {
-            ensureDefaultBackendBuilder("fromEnv").fromEnv()
-        }
+        fun fromEnv() = apply { ensureDefaultBackendBuilder("fromEnv").fromEnv() }
 
-        private fun ensureDefaultBackendBuilder(fromFunction: String)
-                : AnthropicBackend.Builder {
-            check(backend == null) {
-                "Backend already set. Cannot now call '$fromFunction'."
-            }
+        private fun ensureDefaultBackendBuilder(fromFunction: String): AnthropicBackend.Builder {
+            check(backend == null) { "Backend already set. Cannot now call '$fromFunction'." }
 
-            return defaultBackendBuilder ?: AnthropicBackend.builder().also {
-                defaultBackendBuilder = it
-            }
+            return defaultBackendBuilder
+                ?: AnthropicBackend.builder().also { defaultBackendBuilder = it }
         }
 
         /**
-         * Ensures that a backend is available for the creation of the client.
-         * If no [backend] was set explicitly, or no default backend was set
-         * implicitly by calls to any of [baseUrl], [apiKey], or [authToken],
-         * a new default [AnthropicBackend] backend will be returned with the
-         * default production base URL, no API key and no auth token.
+         * Ensures that a backend is available for the creation of the client. If no [backend] was
+         * set explicitly, or no default backend was set implicitly by calls to any of [baseUrl],
+         * [apiKey], or [authToken], a new default [AnthropicBackend] backend will be returned with
+         * the default production base URL, no API key and no auth token.
          */
         private fun ensureBackend(): Backend =
             backend ?: ensureDefaultBackendBuilder("ensureBackend").build()

@@ -39,12 +39,9 @@ internal class AnthropicBackendTest {
 
         assertThat(request.headers.values("anthropic-version")).isEmpty()
 
-        assertThat(preparedRequest.headers.names().size)
-            .isEqualTo(headersCount + 1)
-        assertThat(preparedRequest.headers.values("anthropic-version").size)
-            .isEqualTo(1)
-        assertThat(preparedRequest.headers.values("anthropic-version")[0])
-            .isEqualTo("2023-06-01")
+        assertThat(preparedRequest.headers.names().size).isEqualTo(headersCount + 1)
+        assertThat(preparedRequest.headers.values("anthropic-version").size).isEqualTo(1)
+        assertThat(preparedRequest.headers.values("anthropic-version")[0]).isEqualTo("2023-06-01")
     }
 
     @Test
@@ -69,12 +66,9 @@ internal class AnthropicBackendTest {
         assertThat(request.headers.values("X-Api-Key")).isEmpty()
         assertThat(request.headers.values("Authorization")).isEmpty()
 
-        assertThat(authorizedRequest.headers.names().size)
-            .isEqualTo(headersCount + 1)
-        assertThat(authorizedRequest.headers.values("X-Api-Key").size)
-            .isEqualTo(1)
-        assertThat(authorizedRequest.headers.values("X-Api-Key")[0])
-            .isEqualTo(API_KEY)
+        assertThat(authorizedRequest.headers.names().size).isEqualTo(headersCount + 1)
+        assertThat(authorizedRequest.headers.values("X-Api-Key").size).isEqualTo(1)
+        assertThat(authorizedRequest.headers.values("X-Api-Key")[0]).isEqualTo(API_KEY)
         assertThat(authorizedRequest.headers.values("Authorization")).isEmpty()
     }
 
@@ -88,10 +82,8 @@ internal class AnthropicBackendTest {
         assertThat(request.headers.values("X-Api-Key")).isEmpty()
         assertThat(request.headers.values("Authorization")).isEmpty()
 
-        assertThat(authorizedRequest.headers.names().size)
-            .isEqualTo(headersCount + 1)
-        assertThat(authorizedRequest.headers.values("Authorization").size)
-            .isEqualTo(1)
+        assertThat(authorizedRequest.headers.names().size).isEqualTo(headersCount + 1)
+        assertThat(authorizedRequest.headers.values("Authorization").size).isEqualTo(1)
         assertThat(authorizedRequest.headers.values("Authorization")[0])
             .isEqualTo("Bearer $AUTH_TOKEN")
         assertThat(authorizedRequest.headers.values("X-Api-Key")).isEmpty()
@@ -121,9 +113,7 @@ internal class AnthropicBackendTest {
     fun builderApiKeyAndAuthTokenBothSet() {
         // There is expected to be no enforcement of the mutual exclusion of the
         // two incompatible credential values.
-        assertThatNoException().isThrownBy {
-            createBackend(API_KEY, AUTH_TOKEN, null)
-        }
+        assertThatNoException().isThrownBy { createBackend(API_KEY, AUTH_TOKEN, null) }
     }
 
     @Test
@@ -147,10 +137,11 @@ internal class AnthropicBackendTest {
     fun builderCredentialsFromOptionals() {
         // Check that if the "(...: Optional<String>)" setters are called, that
         // they set their respective fields and do not get their wires crossed.
-        val backend = AnthropicBackend.builder()
-            .apiKey(Optional.ofNullable(API_KEY))
-            .authToken(Optional.ofNullable(AUTH_TOKEN))
-            .build()
+        val backend =
+            AnthropicBackend.builder()
+                .apiKey(Optional.ofNullable(API_KEY))
+                .authToken(Optional.ofNullable(AUTH_TOKEN))
+                .build()
 
         assertThat(backend.apiKey).isEqualTo(API_KEY)
         assertThat(backend.authToken).isEqualTo(AUTH_TOKEN)
@@ -158,28 +149,33 @@ internal class AnthropicBackendTest {
 
     @Test
     fun builderCredentialsFromOptionalsWithNulls() {
-        val backend = AnthropicBackend.builder()
-            .apiKey(Optional.ofNullable(null))
-            .authToken(Optional.ofNullable(null))
-            .build()
+        val backend =
+            AnthropicBackend.builder()
+                .apiKey(Optional.ofNullable(null))
+                .authToken(Optional.ofNullable(null))
+                .build()
 
         assertThat(backend.apiKey).isNull()
         assertThat(backend.authToken).isNull()
     }
 
-    private fun createBackend(): AnthropicBackend =
-        createBackend(API_KEY, null, null)
+    private fun createBackend(): AnthropicBackend = createBackend(API_KEY, null, null)
 
-    /**
-     * @param baseUrl If `null`, the default production URL is assumed.
-     */
+    /** @param baseUrl If `null`, the default production URL is assumed. */
     private fun createBackend(
-        apiKey: String?, authToken: String?, baseUrl: String?)
-            : AnthropicBackend = AnthropicBackend.builder()
-        .apiKey(apiKey)
-        .authToken(authToken)
-        .apply { if (baseUrl != null) { baseUrl(baseUrl) } }
-        .build()
+        apiKey: String?,
+        authToken: String?,
+        baseUrl: String?,
+    ): AnthropicBackend =
+        AnthropicBackend.builder()
+            .apiKey(apiKey)
+            .authToken(authToken)
+            .apply {
+                if (baseUrl != null) {
+                    baseUrl(baseUrl)
+                }
+            }
+            .build()
 
     private fun createRequest(): HttpRequest =
         HttpRequest.builder()

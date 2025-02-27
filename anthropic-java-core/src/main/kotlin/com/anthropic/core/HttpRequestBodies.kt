@@ -12,21 +12,17 @@ import java.io.OutputStream
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder
 
 /**
- * Creates a new [HttpRequestBody] containing the given value serialized to a
- * JSON string. The content type will be set to `application/json` and will use
- * UTF-8 encoding.
+ * Creates a new [HttpRequestBody] containing the given value serialized to a JSON string. The
+ * content type will be set to `application/json` and will use UTF-8 encoding.
  *
- * The use of this method is _not supported_ as part of the public API of the
- * Anthropic SDK. This method may change or be removed without any prior notice.
+ * The use of this method is _not supported_ as part of the public API of the Anthropic SDK. This
+ * method may change or be removed without any prior notice.
  *
- * @param value The data to form the request body. This may be any object; it is
- *     not limited to JSON objects or nodes.
+ * @param value The data to form the request body. This may be any object; it is not limited to JSON
+ *   objects or nodes.
  */
 @JvmSynthetic
-inline fun <reified T> json(
-    jsonMapper: JsonMapper,
-    value: T,
-): HttpRequestBody {
+inline fun <reified T> json(jsonMapper: JsonMapper, value: T): HttpRequestBody {
     return object : HttpRequestBody {
         private var cachedBytes: ByteArray? = null
 
@@ -60,22 +56,18 @@ inline fun <reified T> json(
 }
 
 /**
- * Creates a JSON [ObjectNode] representing the JSON data parsed from a
- * [HttpRequestBody].
+ * Creates a JSON [ObjectNode] representing the JSON data parsed from a [HttpRequestBody].
  *
- * The use of this method is _not supported_ as part of the public API of the
- * Anthropic SDK. This method may change or be removed without any prior notice.
+ * The use of this method is _not supported_ as part of the public API of the Anthropic SDK. This
+ * method may change or be removed without any prior notice.
  */
 @JvmSynthetic
-fun bodyToJson(
-    jsonMapper: ObjectMapper, body: HttpRequestBody?
-): ObjectNode? {
+fun bodyToJson(jsonMapper: ObjectMapper, body: HttpRequestBody?): ObjectNode? {
     val jsonData = ByteArrayOutputStream()
 
     body?.writeTo(jsonData)
     if (jsonData.size() > 0) {
-        return jsonMapper.readValue(
-            jsonData.toByteArray(), ObjectNode::class.java)
+        return jsonMapper.readValue(jsonData.toByteArray(), ObjectNode::class.java)
     }
     return null
 }

@@ -28,15 +28,11 @@ import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.BufferedSink
 
-class OkHttpClient private constructor(
-    private val okHttpClient: okhttp3.OkHttpClient,
-    private val backend: Backend,
-    ) : HttpClient {
+class OkHttpClient
+private constructor(private val okHttpClient: okhttp3.OkHttpClient, private val backend: Backend) :
+    HttpClient {
 
-    override fun execute(
-        request: HttpRequest,
-        requestOptions: RequestOptions,
-    ): HttpResponse {
+    override fun execute(request: HttpRequest, requestOptions: RequestOptions): HttpResponse {
         val preparedRequest = prepareRequest(request)
         val call = newCall(preparedRequest, requestOptions)
 
@@ -62,8 +58,7 @@ class OkHttpClient private constructor(
             .enqueue(
                 object : Callback {
                     override fun onResponse(call: Call, response: Response) {
-                        future.complete(
-                            backend.prepareResponse(response.toResponse()))
+                        future.complete(backend.prepareResponse(response.toResponse()))
                     }
 
                     override fun onFailure(call: Call, e: IOException) {

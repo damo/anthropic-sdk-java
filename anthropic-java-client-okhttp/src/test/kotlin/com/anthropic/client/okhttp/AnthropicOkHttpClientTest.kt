@@ -14,28 +14,23 @@ internal class AnthropicOkHttpClientTest {
 
     private class TestBackend : Backend {
         override fun baseUrl(): String = BASE_URL
+
         override fun close() {}
     }
 
     @Test
     fun backendExplicit() {
-        assertThatNoException().isThrownBy {
-            createBuilder().backend(TestBackend()).build()
-        }
+        assertThatNoException().isThrownBy { createBuilder().backend(TestBackend()).build() }
     }
 
     @Test
     fun backendDefaultFromApiKey() {
-        assertThatNoException().isThrownBy {
-            createBuilder().apiKey(API_KEY).build()
-        }
+        assertThatNoException().isThrownBy { createBuilder().apiKey(API_KEY).build() }
     }
 
     @Test
     fun backendDefaultFromAuthToken() {
-        assertThatNoException().isThrownBy {
-            createBuilder().apiKey(AUTH_TOKEN).build()
-        }
+        assertThatNoException().isThrownBy { createBuilder().apiKey(AUTH_TOKEN).build() }
     }
 
     @Test
@@ -84,6 +79,5 @@ internal class AnthropicOkHttpClientTest {
             .hasMessageStartingWith("Default backend already set")
     }
 
-    private fun createBuilder(): AnthropicOkHttpClient.Builder =
-        AnthropicOkHttpClient.builder()
+    private fun createBuilder(): AnthropicOkHttpClient.Builder = AnthropicOkHttpClient.builder()
 }
