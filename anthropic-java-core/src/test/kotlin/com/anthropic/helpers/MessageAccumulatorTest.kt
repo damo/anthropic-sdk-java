@@ -4,32 +4,32 @@ import com.anthropic.core.JsonField
 import com.anthropic.core.JsonMissing
 import com.anthropic.core.JsonNull
 import com.anthropic.core.JsonString
-import com.anthropic.models.CitationCharLocation
-import com.anthropic.models.CitationContentBlockLocation
-import com.anthropic.models.CitationPageLocation
-import com.anthropic.models.CitationsDelta
-import com.anthropic.models.InputJsonDelta
-import com.anthropic.models.Message
-import com.anthropic.models.MessageDeltaUsage
-import com.anthropic.models.Model
-import com.anthropic.models.RawContentBlockDeltaEvent
-import com.anthropic.models.RawContentBlockStartEvent
-import com.anthropic.models.RawContentBlockStartEvent.ContentBlock
-import com.anthropic.models.RawContentBlockStopEvent
-import com.anthropic.models.RawMessageDeltaEvent
-import com.anthropic.models.RawMessageDeltaEvent.Delta.StopReason
-import com.anthropic.models.RawMessageStartEvent
-import com.anthropic.models.RawMessageStopEvent
-import com.anthropic.models.RawMessageStreamEvent
-import com.anthropic.models.RedactedThinkingBlock
-import com.anthropic.models.SignatureDelta
-import com.anthropic.models.TextBlock
-import com.anthropic.models.TextCitation
-import com.anthropic.models.TextDelta
-import com.anthropic.models.ThinkingBlock
-import com.anthropic.models.ThinkingDelta
-import com.anthropic.models.ToolUseBlock
-import com.anthropic.models.Usage
+import com.anthropic.models.messages.CitationCharLocation
+import com.anthropic.models.messages.CitationContentBlockLocation
+import com.anthropic.models.messages.CitationPageLocation
+import com.anthropic.models.messages.CitationsDelta
+import com.anthropic.models.messages.InputJsonDelta
+import com.anthropic.models.messages.Message
+import com.anthropic.models.messages.MessageDeltaUsage
+import com.anthropic.models.messages.Model
+import com.anthropic.models.messages.RawContentBlockDeltaEvent
+import com.anthropic.models.messages.RawContentBlockStartEvent
+import com.anthropic.models.messages.RawContentBlockStartEvent.ContentBlock
+import com.anthropic.models.messages.RawContentBlockStopEvent
+import com.anthropic.models.messages.RawMessageDeltaEvent
+import com.anthropic.models.messages.RawMessageDeltaEvent.Delta.StopReason
+import com.anthropic.models.messages.RawMessageStartEvent
+import com.anthropic.models.messages.RawMessageStopEvent
+import com.anthropic.models.messages.RawMessageStreamEvent
+import com.anthropic.models.messages.RedactedThinkingBlock
+import com.anthropic.models.messages.SignatureDelta
+import com.anthropic.models.messages.TextBlock
+import com.anthropic.models.messages.TextCitation
+import com.anthropic.models.messages.TextDelta
+import com.anthropic.models.messages.ThinkingBlock
+import com.anthropic.models.messages.ThinkingDelta
+import com.anthropic.models.messages.ToolUseBlock
+import com.anthropic.models.messages.Usage
 import kotlin.jvm.optionals.getOrNull
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatNoException
@@ -71,7 +71,7 @@ internal class MessageAccumulatorTest {
     fun mergeTextDeltaWrongBlockType() {
         assertThatThrownBy {
                 MessageAccumulator.mergeTextDelta(
-                    com.anthropic.models.ContentBlock.ofThinking(thinkingBlock()),
+                    com.anthropic.models.messages.ContentBlock.ofThinking(thinkingBlock()),
                     textDelta("hello"),
                 )
             }
@@ -85,7 +85,7 @@ internal class MessageAccumulatorTest {
         // (enough) that "Builder.from()" is being called to copy everything, not just the text.
         val text1 =
             MessageAccumulator.mergeTextDelta(
-                com.anthropic.models.ContentBlock.ofText(
+                com.anthropic.models.messages.ContentBlock.ofText(
                     textBlock("hello")
                         .toBuilder()
                         .addCitation(citationPageLocation(123L))
@@ -112,7 +112,7 @@ internal class MessageAccumulatorTest {
     fun mergeCitationsDeltaWrongBlockType() {
         assertThatThrownBy {
                 MessageAccumulator.mergeCitationsDelta(
-                    com.anthropic.models.ContentBlock.ofThinking(thinkingBlock()),
+                    com.anthropic.models.messages.ContentBlock.ofThinking(thinkingBlock()),
                     citationsDelta(123L),
                 )
             }
@@ -125,7 +125,7 @@ internal class MessageAccumulatorTest {
         // Use all types of citation to exercise the code in [citationsDeltaToTextCitation].
         val text1 =
             MessageAccumulator.mergeCitationsDelta(
-                com.anthropic.models.ContentBlock.ofText(textBlock("hello")),
+                com.anthropic.models.messages.ContentBlock.ofText(textBlock("hello")),
                 citationsDelta(123L),
             )
         val text2 = MessageAccumulator.mergeCitationsDelta(text1, citationsDelta(456L))
@@ -159,7 +159,7 @@ internal class MessageAccumulatorTest {
     fun mergeThinkingDeltaWrongBlockType() {
         assertThatThrownBy {
                 MessageAccumulator.mergeThinkingDelta(
-                    com.anthropic.models.ContentBlock.ofText(textBlock("hello")),
+                    com.anthropic.models.messages.ContentBlock.ofText(textBlock("hello")),
                     thinkingDelta("hmm...let me think..."),
                 )
             }
@@ -171,7 +171,7 @@ internal class MessageAccumulatorTest {
     fun mergeThinkingDelta() {
         val thinking1 =
             MessageAccumulator.mergeThinkingDelta(
-                com.anthropic.models.ContentBlock.ofThinking(
+                com.anthropic.models.messages.ContentBlock.ofThinking(
                     thinkingBlock("Let me see...", "sig-1")
                 ),
                 thinkingDelta(" Nope."),
@@ -193,7 +193,9 @@ internal class MessageAccumulatorTest {
     fun mergeSignatureDeltaWrongBlockType() {
         assertThatThrownBy {
                 MessageAccumulator.mergeSignatureDelta(
-                    com.anthropic.models.ContentBlock.ofText(textBlock("Yours sincerely,")),
+                    com.anthropic.models.messages.ContentBlock.ofText(
+                        textBlock("Yours sincerely,")
+                    ),
                     signatureDelta("John Hancock"),
                 )
             }
@@ -205,7 +207,9 @@ internal class MessageAccumulatorTest {
     fun mergeSignatureDelta() {
         val thinking1 =
             MessageAccumulator.mergeSignatureDelta(
-                com.anthropic.models.ContentBlock.ofThinking(thinkingBlock("Hmm...", "sig-1")),
+                com.anthropic.models.messages.ContentBlock.ofThinking(
+                    thinkingBlock("Hmm...", "sig-1")
+                ),
                 signatureDelta("sig-2"),
             )
         val thinking2 = MessageAccumulator.mergeSignatureDelta(thinking1, signatureDelta("sig-3"))
@@ -853,7 +857,10 @@ internal class MessageAccumulatorTest {
     ): RawMessageStreamEvent =
         contentBlockDeltaEvent(index, InputJsonDelta.builder().partialJson(partialJson).build())
 
-    private fun thinkingContentBlockStartEvent(index: Long, thinking: String = "[thought-1"): RawMessageStreamEvent =
+    private fun thinkingContentBlockStartEvent(
+        index: Long,
+        thinking: String = "[thought-1",
+    ): RawMessageStreamEvent =
         contentBlockStartEvent(
             index,
             ContentBlock.ofThinking(
