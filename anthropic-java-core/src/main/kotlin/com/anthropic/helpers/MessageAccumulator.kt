@@ -2,6 +2,7 @@ package com.anthropic.helpers
 
 import com.anthropic.core.JsonObject
 import com.anthropic.core.jsonMapper
+import com.anthropic.errors.AnthropicInvalidDataException
 import com.anthropic.models.messages.CitationCharLocation
 import com.anthropic.models.messages.CitationContentBlockLocation
 import com.anthropic.models.messages.CitationPageLocation
@@ -36,12 +37,7 @@ import com.anthropic.models.messages.Usage
  * A [MessageAccumulator] may only be used to accumulate one message. To accumulate another message,
  * create another instance of [MessageAccumulator].
  */
-class MessageAccumulator {
-
-    // TODO: Confirm that the ubiquitous "_additionalProperties()" of the stream events can
-    //   generally be ignored and that it does not provide partial properties that need to be
-    //   accumulated.
-
+class MessageAccumulator private constructor() {
     /**
      * The final accumulated message. Created from the [messageBuilder] when the `message_stop`
      * event is notified.
@@ -67,7 +63,7 @@ class MessageAccumulator {
      * latest accumulation. The keys correspond to the `index` identified in each of the
      * `content_block_delta` events.
      */
-    private val messageContent: MutableMap<Long, ContentBlock> = mutableMapOf<Long, ContentBlock>()
+    private val messageContent: MutableMap<Long, ContentBlock> = mutableMapOf()
 
     /**
      * Accumulations of partial JSON strings from `tool_use` content block deltas to form complete
@@ -78,14 +74,18 @@ class MessageAccumulator {
      * notified. The keys correspond to the `index` identified in each of the `content_block_delta`
      * events.
      */
-    private val messageContentInputJson: MutableMap<Long, String> = mutableMapOf<Long, String>()
+    private val messageContentInputJson: MutableMap<Long, String> = mutableMapOf()
 
     companion object {
         private val JSON_MAPPER = jsonMapper()
 
+        fun create() = MessageAccumulator()
+
+        @JvmSynthetic
         internal fun mergeMessageUsage(usage: Usage, deltaUsage: MessageDeltaUsage): Usage =
             usage.toBuilder().outputTokens(usage.outputTokens() + deltaUsage.outputTokens()).build()
 
+        @JvmSynthetic
         internal fun mergeTextDelta(
             contentBlock: ContentBlock,
             textDelta: TextDelta,
@@ -93,14 +93,12 @@ class MessageAccumulator {
             require(contentBlock.isText()) { "Content block is not a text block." }
             val oldTextBlock = contentBlock.text().get()
             val newTextBlock =
-                TextBlock.builder()
-                    .from(oldTextBlock)
-                    .text(oldTextBlock.text() + textDelta.text())
-                    .build()
+                oldTextBlock.toBuilder().text(oldTextBlock.text() + textDelta.text()).build()
 
             return ContentBlock.ofText(newTextBlock)
         }
 
+        @JvmSynthetic
         internal fun mergeCitationsDelta(
             contentBlock: ContentBlock,
             citationsDelta: CitationsDelta,
@@ -108,14 +106,15 @@ class MessageAccumulator {
             require(contentBlock.isText()) { "Content block is not a text block." }
             val oldTextBlock = contentBlock.text().get()
             val newTextBlock =
-                TextBlock.builder()
-                    .from(oldTextBlock)
+                oldTextBlock
+                    .toBuilder()
                     .addCitation(citationsDeltaToTextCitation(citationsDelta))
                     .build()
 
             return ContentBlock.ofText(newTextBlock)
         }
 
+        @JvmSynthetic
         internal fun mergeThinkingDelta(
             contentBlock: ContentBlock,
             thinkingDelta: ThinkingDelta,
@@ -123,14 +122,15 @@ class MessageAccumulator {
             require(contentBlock.isThinking()) { "Content block is not a thinking block." }
             val oldThinkingBlock = contentBlock.thinking().get()
             val newThinkingBlock =
-                ThinkingBlock.builder()
-                    .from(oldThinkingBlock)
+                oldThinkingBlock
+                    .toBuilder()
                     .thinking(oldThinkingBlock.thinking() + thinkingDelta.thinking())
                     .build()
 
             return ContentBlock.ofThinking(newThinkingBlock)
         }
 
+        @JvmSynthetic
         internal fun mergeSignatureDelta(
             contentBlock: ContentBlock,
             signatureDelta: SignatureDelta,
@@ -145,14 +145,12 @@ class MessageAccumulator {
             require(contentBlock.isThinking()) { "Content block is not a thinking block." }
             val oldThinkingBlock = contentBlock.thinking().get()
             val newThinkingBlock =
-                ThinkingBlock.builder()
-                    .from(oldThinkingBlock)
-                    .signature(signatureDelta.signature())
-                    .build()
+                oldThinkingBlock.toBuilder().signature(signatureDelta.signature()).build()
 
             return ContentBlock.ofThinking(newThinkingBlock)
         }
 
+        @JvmSynthetic
         internal fun citationsDeltaToTextCitation(citationsDelta: CitationsDelta): TextCitation =
             // A `CitationsDelta` only holds _one_ citation.
             citationsDelta
@@ -182,28 +180,31 @@ class MessageAccumulator {
      *
      * @throws IllegalStateException If called before the `message_stop` event has been accumulated.
      */
-    // TODO: Decide to call this "finalMessage" or not. There is no concept of a "currentMessage"
-    //   (one partially accumulated), so a "final" prefix to the name seems redundant.
-    fun message(): Message =
-        message ?: throw IllegalStateException("'message_stop' event not yet received.")
+    fun message(): Message = checkNotNull(message) { "'message_stop' event not yet received." }
 
     /**
      * Accumulates a streamed event and uses it to construct a [Message]. When all events, including
      * the `message_stop` event, have been accumulated, the message can be retrieved by calling
      * [message].
      *
-     * @throws IllegalStateException If [accumulate] is called again after the final `message_stop`
-     *   event has been accumulated. A [MessageAccumulator] can only be used to accumulate a single
-     *   [Message].
+     * @throws AnthropicInvalidDataException If [accumulate] is called again after the final
+     *   `message_stop` event has been accumulated. A [MessageAccumulator] can only be used to
+     *   accumulate a single [Message].
      */
     fun accumulate(event: RawMessageStreamEvent): RawMessageStreamEvent {
-        check(message == null) { "'message_stop' event already received." }
+        if (message != null) {
+            throw AnthropicInvalidDataException("'message_stop' event already received.")
+        }
 
         event.accept(
             object : RawMessageStreamEvent.Visitor<Unit> {
                 override fun visitStart(start: RawMessageStartEvent) {
-                    check(messageBuilder == null) { "'message_start' event already received." }
-                    messageBuilder = Message.Builder().from(start.message())
+                    if (messageBuilder != null) {
+                        throw AnthropicInvalidDataException(
+                            "'message_start' event already received."
+                        )
+                    }
+                    messageBuilder = start.message().toBuilder()
                     messageUsage = start.message().usage()
                 }
 
@@ -252,8 +253,10 @@ class MessageAccumulator {
                 override fun visitContentBlockStart(contentBlockStart: RawContentBlockStartEvent) {
                     val index = contentBlockStart.index()
 
-                    check(messageContent[index] == null) {
-                        "Content block already started for index $index."
+                    if (messageContent[index] != null) {
+                        throw AnthropicInvalidDataException(
+                            "Content block already started for index $index."
+                        )
                     }
 
                     contentBlockStart
@@ -289,9 +292,11 @@ class MessageAccumulator {
 
                 override fun visitContentBlockDelta(contentBlockDelta: RawContentBlockDeltaEvent) {
                     val index = contentBlockDelta.index()
-                    val oldContentBlock = messageContent[index]
-
-                    check(oldContentBlock != null) { "Content block not started for index $index." }
+                    val oldContentBlock =
+                        messageContent[index]
+                            ?: throw AnthropicInvalidDataException(
+                                "Content block not started for index $index."
+                            )
 
                     messageContent[index] =
                         contentBlockDelta
@@ -338,8 +343,11 @@ class MessageAccumulator {
                     // delta events. It is not possible to validate that the `type` of this event is
                     // the expected one for the accumulated content with the same `index`, as the
                     // type is always just `content_block_stop`.
-                    val oldContentBlock = messageContent[index]
-                    check(oldContentBlock != null) { "Content block not started for index $index." }
+                    val oldContentBlock =
+                        messageContent[index]
+                            ?: throw AnthropicInvalidDataException(
+                                "Content block not started for index $index."
+                            )
 
                     // The `content_block_stop` event for most content block types can be ignored,
                     // as it carries no data. Where the `index` corresponds to a `tool_use` content
@@ -350,7 +358,11 @@ class MessageAccumulator {
                     if (oldContentBlock.isToolUse()) {
                         // Check that there was at least one delta, so a potentially-valid `input`
                         // JSON string was accumulated.
-                        check(inputJson != null) { "Missing input JSON for index $index." }
+                        inputJson
+                            ?: throw AnthropicInvalidDataException(
+                                "Missing input JSON for index $index."
+                            )
+
                         messageContent[index] =
                             ContentBlock.ofToolUse(
                                 oldContentBlock
@@ -369,8 +381,8 @@ class MessageAccumulator {
     }
 
     private fun requireMessageBuilder(): Message.Builder =
-        messageBuilder ?: throw IllegalStateException("'message_start' event not received.")
+        messageBuilder ?: throw AnthropicInvalidDataException("'message_start' event not received.")
 
     private fun requireMessageUsage(): Usage =
-        messageUsage ?: throw IllegalStateException("'message_start' event not received.")
+        messageUsage ?: throw AnthropicInvalidDataException("'message_start' event not received.")
 }

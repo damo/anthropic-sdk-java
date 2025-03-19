@@ -4,6 +4,7 @@ import com.anthropic.core.JsonField
 import com.anthropic.core.JsonMissing
 import com.anthropic.core.JsonNull
 import com.anthropic.core.JsonString
+import com.anthropic.errors.AnthropicInvalidDataException
 import com.anthropic.models.messages.CitationCharLocation
 import com.anthropic.models.messages.CitationContentBlockLocation
 import com.anthropic.models.messages.CitationPageLocation
@@ -82,7 +83,7 @@ internal class MessageAccumulatorTest {
     @Test
     fun mergeTextDelta() {
         // Add citations and later check they are preserved by the "merge" operation. This proves
-        // (enough) that "Builder.from()" is being called to copy everything, not just the text.
+        // (enough) that "toBuilder()" is being called to copy everything, not just the text.
         val text1 =
             MessageAccumulator.mergeTextDelta(
                 com.anthropic.models.messages.ContentBlock.ofText(
@@ -226,7 +227,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageNotStarted() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         assertThatThrownBy { accumulator.message() }
             .isExactlyInstanceOf(IllegalStateException::class.java)
@@ -235,7 +236,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageNotStopped() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
 
@@ -246,72 +247,72 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateStopEventBeforeStarted() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         assertThatThrownBy { accumulator.accumulate(messageStopEvent()) }
-            .isExactlyInstanceOf(IllegalStateException::class.java)
+            .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
             .hasMessage("'message_start' event not received.")
     }
 
     @Test
     fun accumulateDeltaEventBeforeStarted() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         assertThatThrownBy { accumulator.accumulate(messageDeltaEvent()) }
-            .isExactlyInstanceOf(IllegalStateException::class.java)
+            .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
             .hasMessage("'message_start' event not received.")
     }
 
     @Test
     fun accumulateStartEventAfterStart() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
 
         assertThatThrownBy { accumulator.accumulate(messageStartEvent()) }
-            .isExactlyInstanceOf(IllegalStateException::class.java)
+            .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
             .hasMessage("'message_start' event already received.")
     }
 
     @Test
     fun accumulateStopEventAfterStopped() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageStopEvent())
 
         assertThatThrownBy { accumulator.accumulate(messageStopEvent()) }
-            .isExactlyInstanceOf(IllegalStateException::class.java)
+            .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
             .hasMessage("'message_stop' event already received.")
     }
 
     @Test
     fun accumulateStartEventAfterStopped() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageStopEvent())
 
         assertThatThrownBy { accumulator.accumulate(messageStartEvent()) }
-            .isExactlyInstanceOf(IllegalStateException::class.java)
+            .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
             .hasMessage("'message_stop' event already received.")
     }
 
     @Test
     fun accumulateDeltaEventAfterStopped() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageStopEvent())
 
         assertThatThrownBy { accumulator.accumulate(messageDeltaEvent()) }
-            .isExactlyInstanceOf(IllegalStateException::class.java)
+            .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
             .hasMessage("'message_stop' event already received.")
     }
 
     @Test
     fun messageWithNoDeltasOrContent() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageStopEvent())
@@ -336,7 +337,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageWithDeltasAndNoContent() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(
@@ -367,7 +368,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageStopReasonDefaultsToMissing() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageStopEvent())
@@ -382,7 +383,7 @@ internal class MessageAccumulatorTest {
     fun messageDeltaWithNullStopReason() {
         // The default stop reason is `JsonMissing`. See if an explicit `null` works instead and
         // that an explicit `JsonMissing` does not override the `null`.
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageDeltaEvent(stopReason = SET_TO_NULL))
@@ -396,7 +397,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageDeltaWithNonNullStopReason() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         // The last non-missing value should "win".
@@ -412,7 +413,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageStopSequenceDefaultsToMissing() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageStopEvent())
@@ -427,7 +428,7 @@ internal class MessageAccumulatorTest {
     fun messageDeltaWithNullStopSequence() {
         // The default stop sequence is `JsonMissing`. See if an explicit `null` works instead and
         // that an explicit `JsonMissing` does not override the `null`.
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageDeltaEvent(stopSequence = SET_TO_NULL))
@@ -441,7 +442,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageDeltaWithNonNullStopSequence() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         // The last non-missing value should "win".
@@ -457,7 +458,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageDeltaWithUsage() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageDeltaEvent(outputTokens = 11L))
@@ -471,7 +472,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateContentBlocksWithDuplicateIndexes() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(textContentBlockStartEvent(0L, "0-ONE."))
@@ -479,37 +480,37 @@ internal class MessageAccumulatorTest {
         accumulator.accumulate(textContentBlockDeltaEvent(0L, "0-TWO."))
 
         assertThatThrownBy { accumulator.accumulate(textContentBlockStartEvent(0L, "0-ONE.")) }
-            .isInstanceOf(IllegalStateException::class.java)
+            .isInstanceOf(AnthropicInvalidDataException::class.java)
             .hasMessage("Content block already started for index 0.")
     }
 
     @Test
     fun accumulateContentBlocksStopWithoutStart() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(textContentBlockStartEvent(0L, "0-ONE."))
 
         assertThatThrownBy { accumulator.accumulate(contentBlockStopEvent(1L)) }
-            .isInstanceOf(IllegalStateException::class.java)
+            .isInstanceOf(AnthropicInvalidDataException::class.java)
             .hasMessage("Content block not started for index 1.")
     }
 
     @Test
     fun accumulateContentBlocksDeltaWithoutStart() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(textContentBlockStartEvent(0L, "0-ONE."))
 
         assertThatThrownBy { accumulator.accumulate(textContentBlockDeltaEvent(1L, "1-TWO.")) }
-            .isInstanceOf(IllegalStateException::class.java)
+            .isInstanceOf(AnthropicInvalidDataException::class.java)
             .hasMessage("Content block not started for index 1.")
     }
 
     @Test
     fun accumulateTextContentBlockWithTextDeltasAndCitationsDeltas() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
 
@@ -557,8 +558,22 @@ internal class MessageAccumulatorTest {
     }
 
     @Test
+    fun accumulateToolUseContentBlockWithoutAnyDelta() {
+        val accumulator = MessageAccumulator.create()
+
+        accumulator.accumulate(messageStartEvent())
+        accumulator.accumulate(toolUseContentBlockStartEvent(1L, "1-TOOL."))
+
+        // There must be at least one `content_block_delta` event before the end of the block to
+        // define the input JSON string.
+        assertThatThrownBy { accumulator.accumulate(contentBlockStopEvent(1L)) }
+            .isInstanceOf(AnthropicInvalidDataException::class.java)
+            .hasMessage("Missing input JSON for index 1.")
+    }
+
+    @Test
     fun accumulateTextAndToolUseContentBlocks() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
 
@@ -602,7 +617,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateThinkingAndTextContentBlocks() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
 
@@ -643,7 +658,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateRedactedThinkingAndTextContentBlocks() {
-        val accumulator = MessageAccumulator()
+        val accumulator = MessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
 
