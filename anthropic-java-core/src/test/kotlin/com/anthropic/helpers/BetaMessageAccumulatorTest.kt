@@ -5,39 +5,39 @@ import com.anthropic.core.JsonMissing
 import com.anthropic.core.JsonNull
 import com.anthropic.core.JsonString
 import com.anthropic.errors.AnthropicInvalidDataException
-import com.anthropic.models.messages.CitationCharLocation
-import com.anthropic.models.messages.CitationContentBlockLocation
-import com.anthropic.models.messages.CitationPageLocation
-import com.anthropic.models.messages.CitationsDelta
-import com.anthropic.models.messages.InputJsonDelta
-import com.anthropic.models.messages.Message
-import com.anthropic.models.messages.MessageDeltaUsage
+import com.anthropic.models.beta.messages.BetaCitationCharLocation
+import com.anthropic.models.beta.messages.BetaCitationContentBlockLocation
+import com.anthropic.models.beta.messages.BetaCitationPageLocation
+import com.anthropic.models.beta.messages.BetaCitationsDelta
+import com.anthropic.models.beta.messages.BetaInputJsonDelta
+import com.anthropic.models.beta.messages.BetaMessage
+import com.anthropic.models.beta.messages.BetaMessageDeltaUsage
+import com.anthropic.models.beta.messages.BetaRawContentBlockDeltaEvent
+import com.anthropic.models.beta.messages.BetaRawContentBlockStartEvent
+import com.anthropic.models.beta.messages.BetaRawContentBlockStartEvent.ContentBlock
+import com.anthropic.models.beta.messages.BetaRawContentBlockStopEvent
+import com.anthropic.models.beta.messages.BetaRawMessageDeltaEvent
+import com.anthropic.models.beta.messages.BetaRawMessageDeltaEvent.Delta.StopReason
+import com.anthropic.models.beta.messages.BetaRawMessageStartEvent
+import com.anthropic.models.beta.messages.BetaRawMessageStopEvent
+import com.anthropic.models.beta.messages.BetaRawMessageStreamEvent
+import com.anthropic.models.beta.messages.BetaRedactedThinkingBlock
+import com.anthropic.models.beta.messages.BetaSignatureDelta
+import com.anthropic.models.beta.messages.BetaTextBlock
+import com.anthropic.models.beta.messages.BetaTextCitation
+import com.anthropic.models.beta.messages.BetaTextDelta
+import com.anthropic.models.beta.messages.BetaThinkingBlock
+import com.anthropic.models.beta.messages.BetaThinkingDelta
+import com.anthropic.models.beta.messages.BetaToolUseBlock
+import com.anthropic.models.beta.messages.BetaUsage
 import com.anthropic.models.messages.Model
-import com.anthropic.models.messages.RawContentBlockDeltaEvent
-import com.anthropic.models.messages.RawContentBlockStartEvent
-import com.anthropic.models.messages.RawContentBlockStartEvent.ContentBlock
-import com.anthropic.models.messages.RawContentBlockStopEvent
-import com.anthropic.models.messages.RawMessageDeltaEvent
-import com.anthropic.models.messages.RawMessageDeltaEvent.Delta.StopReason
-import com.anthropic.models.messages.RawMessageStartEvent
-import com.anthropic.models.messages.RawMessageStopEvent
-import com.anthropic.models.messages.RawMessageStreamEvent
-import com.anthropic.models.messages.RedactedThinkingBlock
-import com.anthropic.models.messages.SignatureDelta
-import com.anthropic.models.messages.TextBlock
-import com.anthropic.models.messages.TextCitation
-import com.anthropic.models.messages.TextDelta
-import com.anthropic.models.messages.ThinkingBlock
-import com.anthropic.models.messages.ThinkingDelta
-import com.anthropic.models.messages.ToolUseBlock
-import com.anthropic.models.messages.Usage
 import kotlin.jvm.optionals.getOrNull
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatNoException
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 
-internal class MessageAccumulatorTest {
+internal class BetaMessageAccumulatorTest {
     companion object {
         private const val INPUT_TOKENS: Long = 42L
 
@@ -51,14 +51,14 @@ internal class MessageAccumulatorTest {
     @Test
     fun mergeMessageUsage() {
         val usage1 =
-            MessageAccumulator.mergeMessageUsage(
+            BetaMessageAccumulator.mergeMessageUsage(
                 usage(INPUT_TOKENS),
-                MessageDeltaUsage.builder().outputTokens(44L).build(),
+                BetaMessageDeltaUsage.builder().outputTokens(44L).build(),
             )
         val usage2 =
-            MessageAccumulator.mergeMessageUsage(
+            BetaMessageAccumulator.mergeMessageUsage(
                 usage1,
-                MessageDeltaUsage.builder().outputTokens(11L).build(),
+                BetaMessageDeltaUsage.builder().outputTokens(11L).build(),
             )
 
         assertThat(usage1.inputTokens()).isEqualTo(INPUT_TOKENS)
@@ -71,8 +71,8 @@ internal class MessageAccumulatorTest {
     @Test
     fun mergeTextDeltaWrongBlockType() {
         assertThatThrownBy {
-                MessageAccumulator.mergeTextDelta(
-                    com.anthropic.models.messages.ContentBlock.ofThinking(thinkingBlock()),
+                BetaMessageAccumulator.mergeTextDelta(
+                    com.anthropic.models.beta.messages.BetaContentBlock.ofThinking(thinkingBlock()),
                     textDelta("hello"),
                 )
             }
@@ -85,8 +85,8 @@ internal class MessageAccumulatorTest {
         // Add citations and later check they are preserved by the "merge" operation. This proves
         // (enough) that "toBuilder()" is being called to copy everything, not just the text.
         val text1 =
-            MessageAccumulator.mergeTextDelta(
-                com.anthropic.models.messages.ContentBlock.ofText(
+            BetaMessageAccumulator.mergeTextDelta(
+                com.anthropic.models.beta.messages.BetaContentBlock.ofText(
                     textBlock("hello")
                         .toBuilder()
                         .addCitation(citationPageLocation(123L))
@@ -95,7 +95,7 @@ internal class MessageAccumulatorTest {
                 ),
                 textDelta(" world"),
             )
-        val text2 = MessageAccumulator.mergeTextDelta(text1, textDelta("!!!"))
+        val text2 = BetaMessageAccumulator.mergeTextDelta(text1, textDelta("!!!"))
         val citations2 = text2.asText().citations().get()
 
         assertThat(text1.isText()).isTrue()
@@ -112,8 +112,8 @@ internal class MessageAccumulatorTest {
     @Test
     fun mergeCitationsDeltaWrongBlockType() {
         assertThatThrownBy {
-                MessageAccumulator.mergeCitationsDelta(
-                    com.anthropic.models.messages.ContentBlock.ofThinking(thinkingBlock()),
+                BetaMessageAccumulator.mergeCitationsDelta(
+                    com.anthropic.models.beta.messages.BetaContentBlock.ofThinking(thinkingBlock()),
                     citationsDelta(123L),
                 )
             }
@@ -123,22 +123,23 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun mergeCitationsDelta() {
+        MessageAccumulator
         // Use all types of citation to exercise the code in [citationsDeltaToTextCitation].
         val text1 =
-            MessageAccumulator.mergeCitationsDelta(
-                com.anthropic.models.messages.ContentBlock.ofText(textBlock("hello")),
+            BetaMessageAccumulator.mergeCitationsDelta(
+                com.anthropic.models.beta.messages.BetaContentBlock.ofText(textBlock("hello")),
                 citationsDelta(123L),
             )
-        val text2 = MessageAccumulator.mergeCitationsDelta(text1, citationsDelta(456L))
+        val text2 = BetaMessageAccumulator.mergeCitationsDelta(text1, citationsDelta(456L))
         val text3 =
-            MessageAccumulator.mergeCitationsDelta(
+            BetaMessageAccumulator.mergeCitationsDelta(
                 text2,
-                CitationsDelta.builder().citation(citationCharLocation(789L)).build(),
+                BetaCitationsDelta.builder().citation(citationCharLocation(789L)).build(),
             )
         val text4 =
-            MessageAccumulator.mergeCitationsDelta(
+            BetaMessageAccumulator.mergeCitationsDelta(
                 text3,
-                CitationsDelta.builder().citation(citationContentBlockLocation(890L)).build(),
+                BetaCitationsDelta.builder().citation(citationContentBlockLocation(890L)).build(),
             )
         val citations4 = text4.asText().citations().get()
 
@@ -159,8 +160,8 @@ internal class MessageAccumulatorTest {
     @Test
     fun mergeThinkingDeltaWrongBlockType() {
         assertThatThrownBy {
-                MessageAccumulator.mergeThinkingDelta(
-                    com.anthropic.models.messages.ContentBlock.ofText(textBlock("hello")),
+                BetaMessageAccumulator.mergeThinkingDelta(
+                    com.anthropic.models.beta.messages.BetaContentBlock.ofText(textBlock("hello")),
                     thinkingDelta("hmm...let me think..."),
                 )
             }
@@ -171,14 +172,14 @@ internal class MessageAccumulatorTest {
     @Test
     fun mergeThinkingDelta() {
         val thinking1 =
-            MessageAccumulator.mergeThinkingDelta(
-                com.anthropic.models.messages.ContentBlock.ofThinking(
+            BetaMessageAccumulator.mergeThinkingDelta(
+                com.anthropic.models.beta.messages.BetaContentBlock.ofThinking(
                     thinkingBlock("Let me see...", "sig-1")
                 ),
                 thinkingDelta(" Nope."),
             )
         val thinking2 =
-            MessageAccumulator.mergeThinkingDelta(thinking1, thinkingDelta(" Not a clue."))
+            BetaMessageAccumulator.mergeThinkingDelta(thinking1, thinkingDelta(" Not a clue."))
 
         assertThat(thinking1.isThinking()).isTrue()
         assertThat(thinking1.thinking().get().thinking()).isEqualTo("Let me see... Nope.")
@@ -193,8 +194,8 @@ internal class MessageAccumulatorTest {
     @Test
     fun mergeSignatureDeltaWrongBlockType() {
         assertThatThrownBy {
-                MessageAccumulator.mergeSignatureDelta(
-                    com.anthropic.models.messages.ContentBlock.ofText(
+                BetaMessageAccumulator.mergeSignatureDelta(
+                    com.anthropic.models.beta.messages.BetaContentBlock.ofText(
                         textBlock("Yours sincerely,")
                     ),
                     signatureDelta("John Hancock"),
@@ -207,13 +208,14 @@ internal class MessageAccumulatorTest {
     @Test
     fun mergeSignatureDelta() {
         val thinking1 =
-            MessageAccumulator.mergeSignatureDelta(
-                com.anthropic.models.messages.ContentBlock.ofThinking(
+            BetaMessageAccumulator.mergeSignatureDelta(
+                com.anthropic.models.beta.messages.BetaContentBlock.ofThinking(
                     thinkingBlock("Hmm...", "sig-1")
                 ),
                 signatureDelta("sig-2"),
             )
-        val thinking2 = MessageAccumulator.mergeSignatureDelta(thinking1, signatureDelta("sig-3"))
+        val thinking2 =
+            BetaMessageAccumulator.mergeSignatureDelta(thinking1, signatureDelta("sig-3"))
 
         assertThat(thinking1.isThinking()).isTrue()
         assertThat(thinking1.thinking().get().thinking()).isEqualTo("Hmm...")
@@ -227,7 +229,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageNotStarted() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         assertThatThrownBy { accumulator.message() }
             .isExactlyInstanceOf(IllegalStateException::class.java)
@@ -236,7 +238,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageNotStopped() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
 
@@ -247,7 +249,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateStopEventBeforeStarted() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         assertThatThrownBy { accumulator.accumulate(messageStopEvent()) }
             .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
@@ -256,7 +258,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateDeltaEventBeforeStarted() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         assertThatThrownBy { accumulator.accumulate(messageDeltaEvent()) }
             .isExactlyInstanceOf(AnthropicInvalidDataException::class.java)
@@ -265,7 +267,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateStartEventAfterStart() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
 
@@ -276,7 +278,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateStopEventAfterStopped() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageStopEvent())
@@ -288,7 +290,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateStartEventAfterStopped() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageStopEvent())
@@ -300,7 +302,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateDeltaEventAfterStopped() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageStopEvent())
@@ -312,7 +314,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageWithNoDeltasOrContent() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageStopEvent())
@@ -337,7 +339,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageWithDeltasAndNoContent() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(
@@ -356,7 +358,7 @@ internal class MessageAccumulatorTest {
 
         assertThat(message.stopReason()).isPresent()
         // "Message.StopReason" and "RawMessageDeltaEvent.Delta.StopReason" are not the same thing!
-        assertThat(message.stopReason().get()).isEqualTo(Message.StopReason.END_TURN)
+        assertThat(message.stopReason().get()).isEqualTo(BetaMessage.StopReason.END_TURN)
 
         assertThat(message.stopSequence()).isNotPresent()
 
@@ -368,7 +370,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageStopReasonDefaultsToMissing() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageStopEvent())
@@ -383,7 +385,7 @@ internal class MessageAccumulatorTest {
     fun messageDeltaWithNullStopReason() {
         // The default stop reason is `JsonMissing`. See if an explicit `null` works instead and
         // that an explicit `JsonMissing` does not override the `null`.
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageDeltaEvent(stopReason = SET_TO_NULL))
@@ -397,7 +399,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageDeltaWithNonNullStopReason() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         // The last non-missing value should "win".
@@ -408,12 +410,13 @@ internal class MessageAccumulatorTest {
 
         assertThat(accumulator.message()._stopReason().isMissing()).isEqualTo(false)
         assertThat(accumulator.message()._stopReason().isNull()).isEqualTo(false)
-        assertThat(accumulator.message().stopReason().get()).isEqualTo(Message.StopReason.END_TURN)
+        assertThat(accumulator.message().stopReason().get())
+            .isEqualTo(BetaMessage.StopReason.END_TURN)
     }
 
     @Test
     fun messageStopSequenceDefaultsToMissing() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageStopEvent())
@@ -428,7 +431,7 @@ internal class MessageAccumulatorTest {
     fun messageDeltaWithNullStopSequence() {
         // The default stop sequence is `JsonMissing`. See if an explicit `null` works instead and
         // that an explicit `JsonMissing` does not override the `null`.
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageDeltaEvent(stopSequence = SET_TO_NULL))
@@ -442,7 +445,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageDeltaWithNonNullStopSequence() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         // The last non-missing value should "win".
@@ -458,7 +461,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun messageDeltaWithUsage() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(messageDeltaEvent(outputTokens = 11L))
@@ -472,7 +475,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateContentBlocksWithDuplicateIndexes() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(textContentBlockStartEvent(0L, "0-ONE."))
@@ -486,7 +489,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateContentBlocksStopWithoutStart() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(textContentBlockStartEvent(0L, "0-ONE."))
@@ -498,7 +501,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateContentBlocksDeltaWithoutStart() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(textContentBlockStartEvent(0L, "0-ONE."))
@@ -510,7 +513,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateTextContentBlockWithTextDeltasAndCitationsDeltas() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
 
@@ -543,7 +546,7 @@ internal class MessageAccumulatorTest {
         val content = message.content()
 
         assertThat(message.stopSequence().getOrNull()).isNull()
-        assertThat(message.stopReason().get()).isEqualTo(Message.StopReason.END_TURN)
+        assertThat(message.stopReason().get()).isEqualTo(BetaMessage.StopReason.END_TURN)
         assertThat(message.usage().inputTokens()).isEqualTo(INPUT_TOKENS)
         assertThat(message.usage().outputTokens()).isEqualTo(99L)
 
@@ -559,7 +562,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateToolUseContentBlockWithoutAnyDelta() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
         accumulator.accumulate(toolUseContentBlockStartEvent(1L, "1-TOOL."))
@@ -573,7 +576,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateTextAndToolUseContentBlocks() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
 
@@ -602,7 +605,7 @@ internal class MessageAccumulatorTest {
         val content = message.content()
 
         assertThat(message.stopSequence().getOrNull()).isNull()
-        assertThat(message.stopReason().get()).isEqualTo(Message.StopReason.TOOL_USE)
+        assertThat(message.stopReason().get()).isEqualTo(BetaMessage.StopReason.TOOL_USE)
         assertThat(message.usage().inputTokens()).isEqualTo(INPUT_TOKENS)
         assertThat(message.usage().outputTokens()).isEqualTo(88L)
 
@@ -617,7 +620,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateThinkingAndTextContentBlocks() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
 
@@ -644,7 +647,7 @@ internal class MessageAccumulatorTest {
         val content = message.content()
 
         assertThat(message.stopSequence().getOrNull()).isNull()
-        assertThat(message.stopReason().get()).isEqualTo(Message.StopReason.END_TURN)
+        assertThat(message.stopReason().get()).isEqualTo(BetaMessage.StopReason.END_TURN)
         assertThat(message.usage().inputTokens()).isEqualTo(INPUT_TOKENS)
         assertThat(message.usage().outputTokens()).isEqualTo(88L)
 
@@ -658,7 +661,7 @@ internal class MessageAccumulatorTest {
 
     @Test
     fun accumulateRedactedThinkingAndTextContentBlocks() {
-        val accumulator = MessageAccumulator.create()
+        val accumulator = BetaMessageAccumulator.create()
 
         accumulator.accumulate(messageStartEvent())
 
@@ -683,7 +686,7 @@ internal class MessageAccumulatorTest {
         val content = message.content()
 
         assertThat(message.stopSequence().getOrNull()).isNull()
-        assertThat(message.stopReason().get()).isEqualTo(Message.StopReason.END_TURN)
+        assertThat(message.stopReason().get()).isEqualTo(BetaMessage.StopReason.END_TURN)
         assertThat(message.usage().inputTokens()).isEqualTo(INPUT_TOKENS)
         assertThat(message.usage().outputTokens()).isEqualTo(88L)
 
@@ -752,10 +755,10 @@ internal class MessageAccumulatorTest {
     // not set explicitly, as it always has an appropriate non-null default value.
 
     private fun messageStartEvent() =
-        RawMessageStreamEvent.ofStart(
-            RawMessageStartEvent.builder()
+        BetaRawMessageStreamEvent.ofStart(
+            BetaRawMessageStartEvent.builder()
                 .message(
-                    Message.builder()
+                    BetaMessage.builder()
                         .id("message-id")
                         .model(Model.CLAUDE_3_5_SONNET_LATEST)
                         .content(listOf())
@@ -798,20 +801,20 @@ internal class MessageAccumulatorTest {
         stopSequence: JsonField<String> = NOT_SET,
         outputTokens: Long = 0L,
     ) =
-        RawMessageStreamEvent.ofDelta(
-            RawMessageDeltaEvent.builder()
+        BetaRawMessageStreamEvent.ofDelta(
+            BetaRawMessageDeltaEvent.builder()
                 .delta(
-                    RawMessageDeltaEvent.Delta.builder()
+                    BetaRawMessageDeltaEvent.Delta.builder()
                         .stopReason(stopReason)
                         .stopSequence(stopSequence)
                         .build()
                 )
-                .usage(MessageDeltaUsage.builder().outputTokens(outputTokens).build())
+                .usage(BetaMessageDeltaUsage.builder().outputTokens(outputTokens).build())
                 .build()
         )
 
     private fun messageStopEvent() =
-        RawMessageStreamEvent.ofStop(RawMessageStopEvent.builder().build())
+        BetaRawMessageStreamEvent.ofStop(BetaRawMessageStopEvent.builder().build())
 
     /**
      * @param citationPageNumber Omit (or use `null`) to create a text content block without any
@@ -824,15 +827,15 @@ internal class MessageAccumulatorTest {
     ) =
         contentBlockStartEvent(
             index,
-            ContentBlock.ofText(
-                TextBlock.builder()
+            ContentBlock.ofBetaText(
+                BetaTextBlock.builder()
                     .text(text)
                     .apply {
                         // `citations` cannot remain `null` when `build()` is called, so set the "no
                         // citations" state explicitly with an empty list if needed.
                         citationPageNumber?.let {
                             addCitation(
-                                TextCitation.ofCitationPageLocation(
+                                BetaTextCitation.ofCitationPageLocation(
                                     citationPageLocation(citationPageNumber)
                                 )
                             )
@@ -856,19 +859,19 @@ internal class MessageAccumulatorTest {
     private fun toolUseContentBlockStartEvent(index: Long, name: String = "tool-name") =
         contentBlockStartEvent(
             index,
-            ContentBlock.ofToolUse(
-                ToolUseBlock.builder().id("tool-id").name(name).input(SET_TO_NULL).build()
+            ContentBlock.ofBetaToolUse(
+                BetaToolUseBlock.builder().id("tool-id").name(name).input(SET_TO_NULL).build()
             ),
         )
 
     private fun toolUseContentBlockDeltaEvent(index: Long, partialJson: String) =
-        contentBlockDeltaEvent(index, InputJsonDelta.builder().partialJson(partialJson).build())
+        contentBlockDeltaEvent(index, BetaInputJsonDelta.builder().partialJson(partialJson).build())
 
     private fun thinkingContentBlockStartEvent(index: Long, thinking: String = "[thought-1") =
         contentBlockStartEvent(
             index,
-            ContentBlock.ofThinking(
-                ThinkingBlock.builder()
+            ContentBlock.ofBetaThinking(
+                BetaThinkingBlock.builder()
                     .thinking(thinking)
                     // No signature is set for the `content_block_start` event. A single
                     // `content_block_delta` event, just before the `content_block_stop` event will
@@ -888,8 +891,8 @@ internal class MessageAccumulatorTest {
     private fun redactedThinkingContentBlockStartEvent(index: Long, data: String?) =
         contentBlockStartEvent(
             index,
-            ContentBlock.ofRedactedThinking(
-                RedactedThinkingBlock.builder().data(JsonField.ofNullable(data)).build()
+            ContentBlock.ofBetaRedactedThinking(
+                BetaRedactedThinkingBlock.builder().data(JsonField.ofNullable(data)).build()
             ),
         )
 
@@ -902,21 +905,21 @@ internal class MessageAccumulatorTest {
         contentBlockDeltaEvent(index, signatureDelta("a-signature"))
 
     private fun contentBlockStartEvent(index: Long, contentBlock: ContentBlock) =
-        RawMessageStreamEvent.ofContentBlockStart(
-            RawContentBlockStartEvent.builder().index(index).contentBlock(contentBlock).build()
+        BetaRawMessageStreamEvent.ofContentBlockStart(
+            BetaRawContentBlockStartEvent.builder().index(index).contentBlock(contentBlock).build()
         )
 
     private fun contentBlockDeltaEvent(index: Long, delta: Any) =
-        RawMessageStreamEvent.ofContentBlockDelta(
-            RawContentBlockDeltaEvent.builder()
+        BetaRawMessageStreamEvent.ofContentBlockDelta(
+            BetaRawContentBlockDeltaEvent.builder()
                 .index(index)
                 .apply {
                     when (delta) {
-                        is TextDelta -> delta(delta)
-                        is CitationsDelta -> delta(delta)
-                        is InputJsonDelta -> delta(delta)
-                        is ThinkingDelta -> delta(delta)
-                        is SignatureDelta -> delta(delta)
+                        is BetaTextDelta -> delta(delta)
+                        is BetaCitationsDelta -> delta(delta)
+                        is BetaInputJsonDelta -> delta(delta)
+                        is BetaThinkingDelta -> delta(delta)
+                        is BetaSignatureDelta -> delta(delta)
                         // There are no delta events for `redacted_thinking` content blocks.
                         else ->
                             throw IllegalArgumentException(
@@ -929,25 +932,25 @@ internal class MessageAccumulatorTest {
 
     // One type of `content_block_stop` event that is common to all types of content blocks.
     private fun contentBlockStopEvent(index: Long) =
-        RawMessageStreamEvent.ofContentBlockStop(
-            RawContentBlockStopEvent.builder().index(index).build()
+        BetaRawMessageStreamEvent.ofContentBlockStop(
+            BetaRawContentBlockStopEvent.builder().index(index).build()
         )
 
     private fun usage(inputTokens: Long) =
-        Usage.builder()
+        BetaUsage.builder()
             .inputTokens(inputTokens)
             .cacheCreationInputTokens(0L)
             .cacheReadInputTokens(0L)
             .outputTokens(0L)
             .build()
 
-    private fun textDelta(text: String) = TextDelta.builder().text(text).build()
+    private fun textDelta(text: String) = BetaTextDelta.builder().text(text).build()
 
     private fun citationsDelta(pageNumber: Long) =
-        CitationsDelta.builder().citation(citationPageLocation(pageNumber)).build()
+        BetaCitationsDelta.builder().citation(citationPageLocation(pageNumber)).build()
 
     private fun citationPageLocation(pageNumber: Long) =
-        CitationPageLocation.builder()
+        BetaCitationPageLocation.builder()
             .documentTitle("Document Title")
             .documentIndex(11L)
             .citedText("cited text")
@@ -956,7 +959,7 @@ internal class MessageAccumulatorTest {
             .build()
 
     private fun citationContentBlockLocation(blockIndex: Long) =
-        CitationContentBlockLocation.builder()
+        BetaCitationContentBlockLocation.builder()
             .documentTitle("Document Title")
             .documentIndex(11L)
             .citedText("cited text")
@@ -965,7 +968,7 @@ internal class MessageAccumulatorTest {
             .build()
 
     private fun citationCharLocation(charIndex: Long) =
-        CitationCharLocation.builder()
+        BetaCitationCharLocation.builder()
             .documentTitle("Document Title")
             .documentIndex(11L)
             .citedText("cited text")
@@ -974,15 +977,17 @@ internal class MessageAccumulatorTest {
             .build()
 
     private fun textCitation(pageNumber: Long) =
-        TextCitation.ofCitationPageLocation(citationPageLocation(pageNumber))
+        BetaTextCitation.ofCitationPageLocation(citationPageLocation(pageNumber))
 
-    private fun thinkingDelta(thinking: String) = ThinkingDelta.builder().thinking(thinking).build()
+    private fun thinkingDelta(thinking: String) =
+        BetaThinkingDelta.builder().thinking(thinking).build()
 
     private fun signatureDelta(signature: String) =
-        SignatureDelta.builder().signature(signature).build()
+        BetaSignatureDelta.builder().signature(signature).build()
 
-    private fun textBlock(text: String) = TextBlock.builder().text(text).citations(listOf()).build()
+    private fun textBlock(text: String) =
+        BetaTextBlock.builder().text(text).citations(listOf()).build()
 
     private fun thinkingBlock(thinking: String = "[thinking]", signature: String = "[signature]") =
-        ThinkingBlock.builder().thinking(thinking).signature(signature).build()
+        BetaThinkingBlock.builder().thinking(thinking).signature(signature).build()
 }

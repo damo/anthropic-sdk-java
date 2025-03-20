@@ -278,6 +278,59 @@ AnthropicClient client = AnthropicOkHttpClient.builder()
     .build();
 ```
 
+### Streaming Helpers
+
+The SDK provides conveniences for streamed messages. A `MessageAccumulator` can record the stream
+of events in the response as they are processed and accumulate a `Message` object similar to that
+which would have been returned by the non-streaming API.
+
+A `BetaMessageAccumulator` is also available for the accumulation of a `BetaMessage` object. It is
+used in the same manner as the `MessageAccumulator`.
+
+For a synchronous response add a `Stream.peek()` call to the stream pipeline to accumulate each 
+event:
+
+```java
+import com.anthropic.core.http.StreamResponse;
+import com.anthropic.helpers.MessageAccumulator;
+import com.anthropic.models.messages.Message;
+import com.anthropic.models.messages.RawMessageStreamEvent;
+
+MessageAccumulator messageAccumulator = MessageAccumulator.create();
+
+try (StreamResponse<RawMessageStreamEvent> streamResponse =
+         client.messages().createStreaming(createParams)) {
+    streamResponse.stream()
+            .peek(MessageAccumulator::accumulate)
+            .flatMap(event -> event.contentBlockDelta().stream())
+            .flatMap(deltaEvent -> deltaEvent.delta().text().stream())
+            .forEach(textDelta -> System.out.print(textDelta.text()));
+}
+
+Message message = messageAccumulator.message();
+```
+
+For an asynchronous response, add the `MessageAccumulator` to the `subscribe()` call:
+
+```java
+import com.anthropic.helpers.MessageAccumulator;
+import com.anthropic.models.messages.Message;
+
+MessageAccumulator messageAccumulator = MessageAccumulator.create();
+
+client.messages()
+        .createStreaming(createParams)
+        .subscribe(event -> 
+                messageAccumulator.accumulate(event).contentBlockDelta().stream()
+                .flatMap(deltaEvent -> deltaEvent.delta().text().stream())
+                .forEach(textDelta -> System.out.print(textDelta.text())))
+        .onCompleteFuture()
+        .join();
+
+Message message = messageAccumulator.message();
+
+```
+
 ## Raw responses
 
 The SDK defines methods that deserialize responses into instances of Java classes. However, these methods don't provide access to the response headers, status code, or the raw response body.

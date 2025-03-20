@@ -3,58 +3,58 @@ package com.anthropic.helpers
 import com.anthropic.core.JsonObject
 import com.anthropic.core.jsonMapper
 import com.anthropic.errors.AnthropicInvalidDataException
-import com.anthropic.models.messages.CitationCharLocation
-import com.anthropic.models.messages.CitationContentBlockLocation
-import com.anthropic.models.messages.CitationPageLocation
-import com.anthropic.models.messages.CitationsDelta
-import com.anthropic.models.messages.ContentBlock
-import com.anthropic.models.messages.InputJsonDelta
-import com.anthropic.models.messages.Message
-import com.anthropic.models.messages.MessageDeltaUsage
-import com.anthropic.models.messages.RawContentBlockDeltaEvent
-import com.anthropic.models.messages.RawContentBlockStartEvent
-import com.anthropic.models.messages.RawContentBlockStopEvent
-import com.anthropic.models.messages.RawMessageDeltaEvent
-import com.anthropic.models.messages.RawMessageStartEvent
-import com.anthropic.models.messages.RawMessageStopEvent
-import com.anthropic.models.messages.RawMessageStreamEvent
-import com.anthropic.models.messages.RedactedThinkingBlock
-import com.anthropic.models.messages.SignatureDelta
-import com.anthropic.models.messages.TextBlock
-import com.anthropic.models.messages.TextCitation
-import com.anthropic.models.messages.TextDelta
-import com.anthropic.models.messages.ThinkingBlock
-import com.anthropic.models.messages.ThinkingDelta
-import com.anthropic.models.messages.ToolUseBlock
-import com.anthropic.models.messages.Usage
+import com.anthropic.models.beta.messages.BetaCitationCharLocation
+import com.anthropic.models.beta.messages.BetaCitationContentBlockLocation
+import com.anthropic.models.beta.messages.BetaCitationPageLocation
+import com.anthropic.models.beta.messages.BetaCitationsDelta
+import com.anthropic.models.beta.messages.BetaContentBlock
+import com.anthropic.models.beta.messages.BetaInputJsonDelta
+import com.anthropic.models.beta.messages.BetaMessage
+import com.anthropic.models.beta.messages.BetaMessageDeltaUsage
+import com.anthropic.models.beta.messages.BetaRawContentBlockDeltaEvent
+import com.anthropic.models.beta.messages.BetaRawContentBlockStartEvent
+import com.anthropic.models.beta.messages.BetaRawContentBlockStopEvent
+import com.anthropic.models.beta.messages.BetaRawMessageDeltaEvent
+import com.anthropic.models.beta.messages.BetaRawMessageStartEvent
+import com.anthropic.models.beta.messages.BetaRawMessageStopEvent
+import com.anthropic.models.beta.messages.BetaRawMessageStreamEvent
+import com.anthropic.models.beta.messages.BetaRedactedThinkingBlock
+import com.anthropic.models.beta.messages.BetaSignatureDelta
+import com.anthropic.models.beta.messages.BetaTextBlock
+import com.anthropic.models.beta.messages.BetaTextCitation
+import com.anthropic.models.beta.messages.BetaTextDelta
+import com.anthropic.models.beta.messages.BetaThinkingBlock
+import com.anthropic.models.beta.messages.BetaThinkingDelta
+import com.anthropic.models.beta.messages.BetaToolUseBlock
+import com.anthropic.models.beta.messages.BetaUsage
 
 /**
- * An accumulator that constructs a [Message] from a sequence of streamed events. Pass all events
- * from the `message_start` event to the `message_stop` event to [accumulate] and then call
- * [message] to get the final accumulated message. The final [Message] will be similar to what would
- * have been received had the non-streaming API been used.
+ * An accumulator that constructs a [BetaMessage] from a sequence of streamed events. Pass all
+ * events from the `message_start` event to the `message_stop` event to [accumulate] and then call
+ * [message] to get the final accumulated message. The final [BetaMessage] will be similar to what
+ * would have been received had the non-streaming API been used.
  *
- * A [MessageAccumulator] may only be used to accumulate _one_ message. To accumulate another
- * message, create another instance of [MessageAccumulator].
+ * A [BetaMessageAccumulator] may only be used to accumulate _one_ message. To accumulate another
+ * message, create another instance of [BetaMessageAccumulator].
  */
-class MessageAccumulator private constructor() {
+class BetaMessageAccumulator private constructor() {
     /**
      * The final accumulated message. Created from the [messageBuilder] when the `message_stop`
      * event is notified.
      */
-    private var message: Message? = null
+    private var message: BetaMessage? = null
 
     /**
      * The message builder used to accumulate the message details. Created when the `message_start`
      * event is notified.
      */
-    private var messageBuilder: Message.Builder? = null
+    private var messageBuilder: BetaMessage.Builder? = null
 
     /**
      * The message usage that accumulates the details of input and output tokens used when creating
      * the message. Created when the `message_start` event is notified.
      */
-    private var messageUsage: Usage? = null
+    private var messageUsage: BetaUsage? = null
 
     /**
      * The indexed collection of content blocks accumulated so far. As `content_block_delta` events
@@ -62,7 +62,7 @@ class MessageAccumulator private constructor() {
      * latest accumulation. The keys correspond to the `index` identified in each of the
      * `content_block_delta` events.
      */
-    private val messageContent: MutableMap<Long, ContentBlock> = mutableMapOf()
+    private val messageContent: MutableMap<Long, BetaContentBlock> = mutableMapOf()
 
     /**
      * Accumulations of partial JSON strings from `tool_use` content block deltas to form complete
@@ -78,30 +78,30 @@ class MessageAccumulator private constructor() {
     companion object {
         private val JSON_MAPPER = jsonMapper()
 
-        @JvmStatic fun create() = MessageAccumulator()
+        @JvmStatic fun create() = BetaMessageAccumulator()
 
         @JvmSynthetic
-        internal fun mergeMessageUsage(usage: Usage, deltaUsage: MessageDeltaUsage) =
+        internal fun mergeMessageUsage(usage: BetaUsage, deltaUsage: BetaMessageDeltaUsage) =
             usage.toBuilder().outputTokens(usage.outputTokens() + deltaUsage.outputTokens()).build()
 
         @JvmSynthetic
         internal fun mergeTextDelta(
-            contentBlock: ContentBlock,
-            textDelta: TextDelta,
-        ): ContentBlock {
+            contentBlock: BetaContentBlock,
+            textDelta: BetaTextDelta,
+        ): BetaContentBlock {
             require(contentBlock.isText()) { "Content block is not a text block." }
             val oldTextBlock = contentBlock.asText()
             val newTextBlock =
                 oldTextBlock.toBuilder().text(oldTextBlock.text() + textDelta.text()).build()
 
-            return ContentBlock.ofText(newTextBlock)
+            return BetaContentBlock.ofText(newTextBlock)
         }
 
         @JvmSynthetic
         internal fun mergeCitationsDelta(
-            contentBlock: ContentBlock,
-            citationsDelta: CitationsDelta,
-        ): ContentBlock {
+            contentBlock: BetaContentBlock,
+            citationsDelta: BetaCitationsDelta,
+        ): BetaContentBlock {
             require(contentBlock.isText()) { "Content block is not a text block." }
             val oldTextBlock = contentBlock.asText()
             val newTextBlock =
@@ -110,14 +110,14 @@ class MessageAccumulator private constructor() {
                     .addCitation(citationsDeltaToTextCitation(citationsDelta))
                     .build()
 
-            return ContentBlock.ofText(newTextBlock)
+            return BetaContentBlock.ofText(newTextBlock)
         }
 
         @JvmSynthetic
         internal fun mergeThinkingDelta(
-            contentBlock: ContentBlock,
-            thinkingDelta: ThinkingDelta,
-        ): ContentBlock {
+            contentBlock: BetaContentBlock,
+            thinkingDelta: BetaThinkingDelta,
+        ): BetaContentBlock {
             require(contentBlock.isThinking()) { "Content block is not a thinking block." }
             val oldThinkingBlock = contentBlock.asThinking()
             val newThinkingBlock =
@@ -126,14 +126,14 @@ class MessageAccumulator private constructor() {
                     .thinking(oldThinkingBlock.thinking() + thinkingDelta.thinking())
                     .build()
 
-            return ContentBlock.ofThinking(newThinkingBlock)
+            return BetaContentBlock.ofThinking(newThinkingBlock)
         }
 
         @JvmSynthetic
         internal fun mergeSignatureDelta(
-            contentBlock: ContentBlock,
-            signatureDelta: SignatureDelta,
-        ): ContentBlock {
+            contentBlock: BetaContentBlock,
+            signatureDelta: BetaSignatureDelta,
+        ): BetaContentBlock {
             // Anthropic Streaming Messages API: "For thinking content, a special `signature_delta`
             // event is sent just before the `content_block_stop` event. This signature is used to
             // verify the integrity of the thinking block."
@@ -146,25 +146,27 @@ class MessageAccumulator private constructor() {
             val newThinkingBlock =
                 oldThinkingBlock.toBuilder().signature(signatureDelta.signature()).build()
 
-            return ContentBlock.ofThinking(newThinkingBlock)
+            return BetaContentBlock.ofThinking(newThinkingBlock)
         }
 
         @JvmSynthetic
-        internal fun citationsDeltaToTextCitation(citationsDelta: CitationsDelta) =
+        internal fun citationsDeltaToTextCitation(citationsDelta: BetaCitationsDelta) =
             // A `CitationsDelta` only holds _one_ citation.
             citationsDelta
                 .citation()
                 .accept(
-                    object : CitationsDelta.Citation.Visitor<TextCitation> {
-                        override fun visitCharLocation(charLocation: CitationCharLocation) =
-                            TextCitation.ofCitationCharLocation(charLocation)
+                    object : BetaCitationsDelta.Citation.Visitor<BetaTextCitation> {
+                        override fun visitBetaCitationCharLocation(
+                            charLocation: BetaCitationCharLocation
+                        ) = BetaTextCitation.ofCitationCharLocation(charLocation)
 
-                        override fun visitPageLocation(pageLocation: CitationPageLocation) =
-                            TextCitation.ofCitationPageLocation(pageLocation)
+                        override fun visitBetaCitationPageLocation(
+                            pageLocation: BetaCitationPageLocation
+                        ) = BetaTextCitation.ofCitationPageLocation(pageLocation)
 
-                        override fun visitContentBlockLocation(
-                            contentBlockLocation: CitationContentBlockLocation
-                        ) = TextCitation.ofCitationContentBlockLocation(contentBlockLocation)
+                        override fun visitBetaCitationContentBlockLocation(
+                            contentBlockLocation: BetaCitationContentBlockLocation
+                        ) = BetaTextCitation.ofCitationContentBlockLocation(contentBlockLocation)
                     }
                 )
     }
@@ -179,22 +181,22 @@ class MessageAccumulator private constructor() {
     fun message() = checkNotNull(message) { "'message_stop' event not yet received." }
 
     /**
-     * Accumulates a streamed event and uses it to construct a [Message]. When all events, including
-     * the `message_stop` event, have been accumulated, the message can be retrieved by calling
-     * [message].
+     * Accumulates a streamed event and uses it to construct a [BetaMessage]. When all events,
+     * including the `message_stop` event, have been accumulated, the message can be retrieved by
+     * calling [message].
      *
      * @throws AnthropicInvalidDataException If [accumulate] is called again after the final
-     *   `message_stop` event has been accumulated. A [MessageAccumulator] can only be used to
-     *   accumulate a single [Message].
+     *   `message_stop` event has been accumulated. A [BetaMessageAccumulator] can only be used to
+     *   accumulate a single [BetaMessage].
      */
-    fun accumulate(event: RawMessageStreamEvent): RawMessageStreamEvent {
+    fun accumulate(event: BetaRawMessageStreamEvent): BetaRawMessageStreamEvent {
         if (message != null) {
             throw AnthropicInvalidDataException("'message_stop' event already received.")
         }
 
         event.accept(
-            object : RawMessageStreamEvent.Visitor<Unit> {
-                override fun visitStart(start: RawMessageStartEvent) {
+            object : BetaRawMessageStreamEvent.Visitor<Unit> {
+                override fun visitStart(start: BetaRawMessageStartEvent) {
                     if (messageBuilder != null) {
                         throw AnthropicInvalidDataException(
                             "'message_start' event already received."
@@ -204,7 +206,7 @@ class MessageAccumulator private constructor() {
                     messageUsage = start.message().usage()
                 }
 
-                override fun visitDelta(deltaEvent: RawMessageDeltaEvent) {
+                override fun visitDelta(deltaEvent: BetaRawMessageDeltaEvent) {
                     val delta = deltaEvent.delta()
 
                     // The Anthropic API allows that there may be "one or more `message_delta`
@@ -215,7 +217,9 @@ class MessageAccumulator private constructor() {
                         requireMessageBuilder().stopReason(null)
                     } else if (!delta._stopReason().isMissing()) {
                         requireMessageBuilder()
-                            .stopReason(Message.StopReason.of(delta.stopReason().get().asString()))
+                            .stopReason(
+                                BetaMessage.StopReason.of(delta.stopReason().get().asString())
+                            )
                     }
 
                     // The same applies to the `stop_sequence` string; only the last value will
@@ -230,7 +234,7 @@ class MessageAccumulator private constructor() {
                     messageUsage = mergeMessageUsage(requireMessageUsage(), deltaEvent.usage())
                 }
 
-                override fun visitStop(stop: RawMessageStopEvent) {
+                override fun visitStop(stop: BetaRawMessageStopEvent) {
                     message =
                         requireMessageBuilder()
                             // The indexed content block map is converted to a list with the blocks
@@ -246,7 +250,9 @@ class MessageAccumulator private constructor() {
                     messageBuilder = null
                 }
 
-                override fun visitContentBlockStart(contentBlockStart: RawContentBlockStartEvent) {
+                override fun visitContentBlockStart(
+                    contentBlockStart: BetaRawContentBlockStartEvent
+                ) {
                     val index = contentBlockStart.index()
 
                     if (messageContent[index] != null) {
@@ -260,27 +266,31 @@ class MessageAccumulator private constructor() {
                             .contentBlock()
                             .accept(
                                 object :
-                                    RawContentBlockStartEvent.ContentBlock.Visitor<ContentBlock> {
-                                    override fun visitText(text: TextBlock) =
-                                        ContentBlock.ofText(text)
+                                    BetaRawContentBlockStartEvent.ContentBlock.Visitor<
+                                        BetaContentBlock
+                                    > {
+                                    override fun visitBetaText(text: BetaTextBlock) =
+                                        BetaContentBlock.ofText(text)
 
-                                    override fun visitToolUse(toolUse: ToolUseBlock) =
-                                        ContentBlock.ofToolUse(toolUse)
+                                    override fun visitBetaToolUse(toolUse: BetaToolUseBlock) =
+                                        BetaContentBlock.ofToolUse(toolUse)
 
-                                    override fun visitThinking(thinking: ThinkingBlock) =
-                                        ContentBlock.ofThinking(thinking)
+                                    override fun visitBetaThinking(thinking: BetaThinkingBlock) =
+                                        BetaContentBlock.ofThinking(thinking)
 
                                     // Anthropic Extended Thinking API specification:
                                     // "`redacted_thinking` blocks will not have any deltas
                                     // associated and will be sent as a single event."
-                                    override fun visitRedactedThinking(
-                                        redactedThinking: RedactedThinkingBlock
-                                    ) = ContentBlock.ofRedactedThinking(redactedThinking)
+                                    override fun visitBetaRedactedThinking(
+                                        redactedThinking: BetaRedactedThinkingBlock
+                                    ) = BetaContentBlock.ofRedactedThinking(redactedThinking)
                                 }
                             )
                 }
 
-                override fun visitContentBlockDelta(contentBlockDelta: RawContentBlockDeltaEvent) {
+                override fun visitContentBlockDelta(
+                    contentBlockDelta: BetaRawContentBlockDeltaEvent
+                ) {
                     val index = contentBlockDelta.index()
                     val oldContentBlock =
                         messageContent[index]
@@ -292,37 +302,39 @@ class MessageAccumulator private constructor() {
                         contentBlockDelta
                             .delta()
                             .accept(
-                                object : RawContentBlockDeltaEvent.Delta.Visitor<ContentBlock> {
-                                    override fun visitText(text: TextDelta) =
+                                object :
+                                    BetaRawContentBlockDeltaEvent.Delta.Visitor<BetaContentBlock> {
+                                    override fun visitBetaText(text: BetaTextDelta) =
                                         mergeTextDelta(oldContentBlock, text)
 
-                                    override fun visitInputJson(inputJson: InputJsonDelta) = run {
-                                        val oldInputJson = messageContentInputJson[index]
+                                    override fun visitBetaInputJson(inputJson: BetaInputJsonDelta) =
+                                        run {
+                                            val oldInputJson = messageContentInputJson[index]
 
-                                        messageContentInputJson[index] =
-                                            (oldInputJson ?: "") + inputJson.partialJson()
+                                            messageContentInputJson[index] =
+                                                (oldInputJson ?: "") + inputJson.partialJson()
 
-                                        oldContentBlock // Unchanged until stop event.
-                                    }
+                                            oldContentBlock // Unchanged until stop event.
+                                        }
 
-                                    override fun visitCitations(citations: CitationsDelta) =
+                                    override fun visitBetaCitations(citations: BetaCitationsDelta) =
                                         mergeCitationsDelta(oldContentBlock, citations)
 
-                                    override fun visitThinking(thinking: ThinkingDelta) =
+                                    override fun visitBetaThinking(thinking: BetaThinkingDelta) =
                                         mergeThinkingDelta(oldContentBlock, thinking)
 
-                                    override fun visitSignature(signature: SignatureDelta) =
+                                    override fun visitBetaSignature(signature: BetaSignatureDelta) =
                                         mergeSignatureDelta(oldContentBlock, signature)
                                 }
                             )
                 }
 
-                override fun visitContentBlockStop(contentBlockStop: RawContentBlockStopEvent) {
+                override fun visitContentBlockStop(contentBlockStop: BetaRawContentBlockStopEvent) {
                     val index = contentBlockStop.index()
 
                     // Check only that there was a corresponding `content_block_start` event with
                     // the same index as this `content_block_stop` event. There are no "subtypes" of
-                    // a `RawContentBlockStopEvent` as there are for the corresponding start and
+                    // a `BetaRawContentBlockStopEvent` as there are for the corresponding start and
                     // delta events. It is not possible to validate that the `type` of this event is
                     // the expected one for the accumulated content with the same `index`, as the
                     // type is always just `content_block_stop`.
@@ -347,7 +359,7 @@ class MessageAccumulator private constructor() {
                             )
 
                         messageContent[index] =
-                            ContentBlock.ofToolUse(
+                            BetaContentBlock.ofToolUse(
                                 oldContentBlock
                                     .asToolUse()
                                     .toBuilder()
