@@ -185,6 +185,7 @@ class BetaMessageAccumulator private constructor() {
      * including the `message_stop` event, have been accumulated, the message can be retrieved by
      * calling [message].
      *
+     * @return The given [event] for convenience, such as when chaining method calls.
      * @throws AnthropicInvalidDataException If [accumulate] is called again after the final
      *   `message_stop` event has been accumulated. A [BetaMessageAccumulator] can only be used to
      *   accumulate a single [BetaMessage].
@@ -372,6 +373,7 @@ class BetaMessageAccumulator private constructor() {
                 }
             }
         )
+
         return event
     }
 

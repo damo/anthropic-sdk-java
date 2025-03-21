@@ -278,17 +278,22 @@ AnthropicClient client = AnthropicOkHttpClient.builder()
     .build();
 ```
 
-### Streaming Helpers
+### Streaming helpers
 
-The SDK provides conveniences for streamed messages. A `MessageAccumulator` can record the stream
-of events in the response as they are processed and accumulate a `Message` object similar to that
-which would have been returned by the non-streaming API.
+The SDK provides conveniences for streamed messages. A 
+[`MessageAccumulator`](anthropic-java-core/src/main/kotlin/com/anthropic/helpers/MessageAccumulator.kt)
+can record the stream of events in the response as they are processed and accumulate a 
+[`Message`](anthropic-java-core/src/main/kotlin/com/anthropic/models/messages/Message.kt) object
+similar to that which would have been returned by the non-streaming API.
 
-A `BetaMessageAccumulator` is also available for the accumulation of a `BetaMessage` object. It is
-used in the same manner as the `MessageAccumulator`.
+A [`BetaMessageAccumulator`](anthropic-java-core/src/main/kotlin/com/anthropic/helpers/BetaMessageAccumulator.kt)
+is also available for the accumulation of a
+[`BetaMessage`](anthropic-java-core/src/main/kotlin/com/anthropic/models/beta/messages/BetaMessage.kt)
+object. It is used in the same manner as the `MessageAccumulator`.
 
-For a synchronous response add a `Stream.peek()` call to the stream pipeline to accumulate each 
-event:
+For a synchronous response add a
+[`Stream.peek()`](https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html#peek-java.util.function.Consumer-)
+call to the stream pipeline to accumulate each event:
 
 ```java
 import com.anthropic.core.http.StreamResponse;
@@ -320,15 +325,13 @@ MessageAccumulator messageAccumulator = MessageAccumulator.create();
 
 client.messages()
         .createStreaming(createParams)
-        .subscribe(event -> 
-                messageAccumulator.accumulate(event).contentBlockDelta().stream()
+        .subscribe(event -> messageAccumulator.accumulate(event).contentBlockDelta().stream()
                 .flatMap(deltaEvent -> deltaEvent.delta().text().stream())
                 .forEach(textDelta -> System.out.print(textDelta.text())))
         .onCompleteFuture()
         .join();
 
 Message message = messageAccumulator.message();
-
 ```
 
 ## Raw responses

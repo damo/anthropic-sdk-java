@@ -183,6 +183,7 @@ class MessageAccumulator private constructor() {
      * the `message_stop` event, have been accumulated, the message can be retrieved by calling
      * [message].
      *
+     * @return The given [event] for convenience, such as when chaining method calls.
      * @throws AnthropicInvalidDataException If [accumulate] is called again after the final
      *   `message_stop` event has been accumulated. A [MessageAccumulator] can only be used to
      *   accumulate a single [Message].
@@ -360,6 +361,7 @@ class MessageAccumulator private constructor() {
                 }
             }
         )
+
         return event
     }
 
