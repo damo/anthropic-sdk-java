@@ -481,8 +481,9 @@ implementation("com.anthropic:anthropic-java-bedrock:1.0.0")
 
 ### Usage
 
-To use Anthropic on Bedrock, create the Anthropic client with the 
-`BedrockBackend. Usage of the API is otherwise the same.
+To use Anthropic on Bedrock, create the Anthropic client with the
+[`BedrockBackend`](anthropic-java-bedrock/src/main/kotlin/com/anthropic/bedrock/backends/BedrockBackend.kt).
+Usage of the API is otherwise the same.
 
 ```java
 import com.anthropic.bedrock.backends.BedrockBackend;
@@ -494,8 +495,7 @@ AnthropicClient client = AnthropicOkHttpClient.builder()
         .build();
 ```
 
-[`BedrockBackend.fromEnv()`](anthropic-java-bedrock/src/main/kotlin/com/anthropic/bedrock/backends/BedrockBackend.kt)
-automatically resolves the AWS credentials using the
+`BedrockBackend.fromEnv()` automatically resolves the AWS credentials using the
 [AWS default credentials provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html)
 and resolves the AWS region using the
 [AWS default region provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/region-selection.html).
