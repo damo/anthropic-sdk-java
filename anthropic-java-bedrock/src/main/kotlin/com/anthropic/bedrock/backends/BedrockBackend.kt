@@ -275,10 +275,9 @@ private constructor(
         return request.toBuilder().replaceAllHeaders(awsSignedRequest.headers()).build()
     }
 
-    private fun authorizeRequestWithApiKey(request: HttpRequest): HttpRequest {
+    private fun authorizeRequestWithApiKey(request: HttpRequest): HttpRequest =
         // When using an API key, the request is not signed.
-        return request.toBuilder().putHeader(HEADER_AUTHORIZATION, "Bearer $apiKey").build()
-    }
+        request.toBuilder().putHeader(HEADER_AUTHORIZATION, "Bearer $apiKey").build()
 
     override fun prepareResponse(response: HttpResponse): HttpResponse {
         if (
@@ -389,9 +388,7 @@ private constructor(
      */
     class Builder internal constructor() {
         private var awsCredentialsProvider: AwsCredentialsProvider? = null
-
         private var apiKey: String? = null
-
         private var region: Region? = null
 
         /**
@@ -467,9 +464,6 @@ private constructor(
          * credentials provider configured by [fromEnv].
          */
         fun awsCredentialsProvider(awsCredentialsProvider: AwsCredentialsProvider) = apply {
-            if (apiKey != null) {
-                throw IllegalStateException("API key already set.")
-            }
             this.awsCredentialsProvider = awsCredentialsProvider
         }
 
@@ -501,8 +495,13 @@ private constructor(
         fun region(region: Region) = apply { this.region = region }
 
         fun build(): BedrockBackend {
+            if (awsCredentialsProvider != null && apiKey != null) {
+                throw IllegalStateException(
+                    "An AWS credentials provider or an API key must be set, but not both."
+                )
+            }
             if (awsCredentialsProvider == null && apiKey == null) {
-                throw IllegalStateException("AWS credentials provider or API key must be set.")
+                throw IllegalStateException("No AWS credentials provider or API key was set.")
             }
             return BedrockBackend(awsCredentialsProvider, apiKey, checkRequired("region", region))
         }

@@ -158,7 +158,7 @@ internal class BedrockBackendTest {
                     .build()
             }
             .isExactlyInstanceOf(IllegalStateException::class.java)
-            .hasMessage("API key already set.")
+            .hasMessage("An AWS credentials provider or an API key must be set, but not both.")
     }
 
     @Test
@@ -166,7 +166,7 @@ internal class BedrockBackendTest {
         initEnv()
         assertThatThrownBy { BedrockBackend.builder().apiKey(API_KEY).fromEnv().build() }
             .isExactlyInstanceOf(IllegalStateException::class.java)
-            .hasMessage("API key already set.")
+            .hasMessage("An AWS credentials provider or an API key must be set, but not both.")
     }
 
     @Test
@@ -255,13 +255,13 @@ internal class BedrockBackendTest {
 
     @Test
     fun builderMissingCredentials() {
-        // Make credentials available from the environment, but do not use them
-        // when building the backend.
+        // Make credentials available from the environment, but do not use them when building the
+        // backend.
         initEnv()
 
         assertThatThrownBy { BedrockBackend.builder().build() }
             .isExactlyInstanceOf(IllegalStateException::class.java)
-            .hasMessageStartingWith("AWS credentials provider or API key")
+            .hasMessageStartingWith("No AWS credentials provider or API key was set.")
     }
 
     @Test
@@ -278,7 +278,7 @@ internal class BedrockBackendTest {
     fun regionExplicitWithoutAwsCredentials() {
         assertThatThrownBy { BedrockBackend.builder().region(Region.US_EAST_1).build() }
             .isExactlyInstanceOf(IllegalStateException::class.java)
-            .hasMessageStartingWith("AWS credentials provider or API key")
+            .hasMessage("No AWS credentials provider or API key was set.")
     }
 
     @Test

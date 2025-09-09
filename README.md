@@ -753,7 +753,7 @@ Currently, the Bedrock backend does _not_ support the following:
 - Anthropic Batch API
 - Anthropic Token Counting API
 
-### Usage with an API key
+#### Usage with an API key
 
 The `BedrockBackend` can also use an API key instead of AWS credentials for request authorization.
 See the [AWS documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys-how.html)

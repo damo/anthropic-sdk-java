@@ -2,13 +2,8 @@ package com.anthropic.example;
 
 import com.anthropic.bedrock.backends.BedrockBackend;
 import com.anthropic.client.AnthropicClient;
-import com.anthropic.client.AnthropicClientAsync;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
-import com.anthropic.client.okhttp.AnthropicOkHttpClientAsync;
 import com.anthropic.models.messages.MessageCreateParams;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentials;
-import software.amazon.awssdk.regions.Region;
 
 /**
  * <p>
@@ -44,7 +39,8 @@ public final class BedrockMessagesApiKeyExample {
 
     public static void main(String[] args) throws Exception {
         AnthropicClient client = AnthropicOkHttpClient.builder()
-                .backend(BedrockBackend.builder().fromEnv().build()).build();
+                .backend(BedrockBackend.builder().fromEnv().build())
+                .build();
 
         MessageCreateParams createParams = MessageCreateParams.builder()
                 .model("us.anthropic.claude-opus-4-20250514-v1:0")
